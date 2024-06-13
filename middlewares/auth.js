@@ -1,9 +1,11 @@
-const sqlcon = require('../models/jobs');
+const dbconnection = require('../config/configdb');
 const jwt = require('jsonwebtoken');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
 
+//==================================================================
 //check if user is authenicated or not
+//==================================================================
 module.exports.isAuthenticatedUser = catchAsyncErrors( async (req, res, next) => {
     let token;
 
@@ -15,16 +17,16 @@ module.exports.isAuthenticatedUser = catchAsyncErrors( async (req, res, next) =>
         return next(new ErrorHandler('Login first to access this resource.', 401));
     }
 
-    // console.log(token);
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    const query = 'SELECT * FROM user WHERE user_id =' + decoded.id;
 
-    sqlcon.query(
+    const query = 'SELECT * FROM accounts WHERE id =' + decoded.id;
+
+    dbconnection.query(
         query,
         function(err, rows) {
             if (err){
-                throw err;
+                return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+                // throw err;
             }
             else{
                 req.user = rows[0];
@@ -37,18 +39,16 @@ module.exports.isAuthenticatedUser = catchAsyncErrors( async (req, res, next) =>
 
 });
 
+//==================================================================
 //handling user roles
-module.exports.authorizeRoles = (...roles) => {
-    return (req, res, next) => {
-        console.log(req.user.role);
+//==================================================================
+// module.exports.authorizeRoles = (...roles) => {
+//     return (req, res, next) => {
+//         console.log(req.user.role);
         
-        if(!roles.includes(req.user.role)){
-            return next(new ErrorHandler(`Role(${req.user.role}) is not allowed to access this resources.`, 403))
-        }
-        next();
-    }
-}
-
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//HANDS-ON STOP AT FORGOT PASSWORD!
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//         if(!roles.includes(req.user.role)){
+//             return next(new ErrorHandler(`Role(${req.user.role}) is not allowed to access this resources.`, 403))
+//         }
+//         next();
+//     }
+// }

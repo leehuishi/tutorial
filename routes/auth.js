@@ -3,16 +3,15 @@ const router = express.Router();
 
 //Importing job controller methods
 const { 
-    registerUser, 
     loginUser,
-    logout
+    logoutUser
 } = require('../controllers/authControllers');
 
 const { isAuthenticatedUser } = require('../middlewares/auth');
 
-router.route('/register').post(registerUser);
 router.route('/login').post(loginUser);
-router.route('/logout').get(isAuthenticatedUser, logout);
+router.route('/logout').get(isAuthenticatedUser, logoutUser);
+
 
 
 module.exports = router;
