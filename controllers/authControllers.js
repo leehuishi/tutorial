@@ -9,18 +9,19 @@ const bcrypt = require('bcryptjs');
 //Login user 
 //==================================================================
 module.exports.loginUser = catchAsyncErrors(async (req, res, next ) => {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
     //check if email or passowrd is entered by user
-    if(!email || !password) {
-        return next(new ErrorHandler('Please enter email & password'), 400)
+    if(!username || !password) {
+        return next(new ErrorHandler('Please enter username & password'), 400)
     }
 
     //finding user in database
-    const query = 'select password, id from accounts where email = "' + email + '"';
+    const query = 'select password from tms_users where username = ?';
 
     dbconnection.query(
         query,
+        [username],
         catchAsyncErrors(async function (err, rows) {
             if (err){
                 return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
@@ -29,22 +30,21 @@ module.exports.loginUser = catchAsyncErrors(async (req, res, next ) => {
             else{
                 if(rows.length < 1){
                     //errorHandling
-                    return next(new ErrorHandler('Invalid Email or Password', 401));
+                    return next(new ErrorHandler('Invalid Username or Password', 401));
                 }
                 else{
 
                     //check if password is correct
                     //compare user password in database password
                     const raw_password = rows[0]['password'];
-                    const raw_user_id = rows[0]['id'];
                     
                     const isPasswordMatched = await bcrypt.compare(password, raw_password);
 
                     if(!isPasswordMatched) {
-                        return next(new ErrorHandler('Invalid Email or Password', 401));
+                        return next(new ErrorHandler('Invalid Username or Password', 401));
                     }
 
-                    sendToken(raw_user_id, 200, res);
+                    sendToken(username, 200, res, req);
 
                 }
             }

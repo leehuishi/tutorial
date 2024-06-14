@@ -14,26 +14,41 @@ module.exports.createUser = catchAsyncErrors (async (req, res, next) => {
 
     const hashpassword = await bcrypt.hash(user.password, 10);
 
-    const insertdata = [user.username, hashpassword, user.email, user.role, 'active'];
-    const insertcol = ['username', 'password', 'email', 'role', 'status'];
+    if(user.email){
+        email = user.email;
+    }
+    else{
+        email = "";
+    }
+
+    const insertdata = [user.username, hashpassword, email, 'active'];
+    const insertcol = ['username', 'password', 'email', 'status'];
 
     const joindata = "'" + insertdata.join("' , '") + "'";
     const joincol = insertcol.join();
 
 
-    const query = 'INSERT INTO accounts (' + joincol + ') VALUES (?, ?, ?, ?, ?)';
+    const query = 'INSERT INTO tms_users (' + joincol + ') VALUES (?, ?, ?, ?)';
 
     dbconnection.query(
         query,
         insertdata,
         function(err, rows) {
             if (err){
-                return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+                if(err.code === "ER_DUP_ENTRY"){
+                    return next(new ErrorHandler('Username Exist. Please use another username', 500));
+                }
+                else{
+                    return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+                }
+
                 // throw err;
             }
             else{
-                //create JWT Token with utils
-                sendToken(rows.insertId, 200, res);
+                res.status(200).json({
+                    success: true,
+                    message: "User created successful",
+                });
             }
             
         }
@@ -44,9 +59,10 @@ module.exports.createUser = catchAsyncErrors (async (req, res, next) => {
 //==================================================================
 //get user profile
 //==================================================================
-module.exports.getUserProfile = (req, res, next) => {
+module.exports.getOwnProfile = (req, res, next) => {
     dbconnection.query(
-        'select * from accounts where id = "' + req.user.id + '" ',
+        'SELECT * FROM tms_users WHERE id = ? ', 
+        [req.user.id],
         function(err, rows) {
             if (err){
                 return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
@@ -66,13 +82,38 @@ module.exports.getUserProfile = (req, res, next) => {
 //==================================================================
 //get all user
 //==================================================================
-module.exports.getallUser = (req, res, next) => {
+module.exports.getAllUser = (req, res, next) => {
     dbconnection.query(
-        'select * from accounts where id = "' + req.user.id + '" ',
+        'SELECT * FROM tms_users',
         function(err, rows) {
             if (err){
-                return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-                // throw err;
+                // return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+                throw err;
+            }
+            else{
+                res.status(200).json({
+                    success: true,
+                    data: rows,
+                });
+            }
+            
+        }
+    )
+}
+
+//==================================================================
+//get specific user
+//==================================================================
+module.exports.getUserById = (req, res, next) => {
+    const query = 'SELECT * FROM tms_users WHERE id = ? ';
+
+    dbconnection.query(
+        query,
+        [req.params.id],
+        function(err, rows) {
+            if (err){
+                // return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+                throw err;
             }
             else{
                 res.status(200).json({

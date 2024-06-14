@@ -6,7 +6,7 @@ const ErrorHandler = require('../utils/errorHandler');
 //==================================================================
 //check if user is authenicated or not
 //==================================================================
-module.exports.isAuthenticatedUser = catchAsyncErrors( async (req, res, next) => {
+module.exports.isAuthenticatedUser = (req, res, next) => {
     let token;
 
     if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
@@ -19,10 +19,19 @@ module.exports.isAuthenticatedUser = catchAsyncErrors( async (req, res, next) =>
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const query = 'SELECT * FROM accounts WHERE id =' + decoded.id;
+    const query = 'SELECT * FROM tms_users WHERE username = ?';
+
+    if(req.ip !== decoded.ip){
+        return next(new ErrorHandler('Login first to access this resource.', 401));
+    }
+
+    if(req.headers['user-agent'] !== decoded.browser){
+        return next(new ErrorHandler('Login first to access this resource.', 401));
+    }
 
     dbconnection.query(
         query,
+        [decoded.username],
         function(err, rows) {
             if (err){
                 return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
@@ -37,18 +46,16 @@ module.exports.isAuthenticatedUser = catchAsyncErrors( async (req, res, next) =>
         }
     )
 
-});
+};
 
 //==================================================================
 //handling user roles
 //==================================================================
-// module.exports.authorizeRoles = (...roles) => {
-//     return (req, res, next) => {
-//         console.log(req.user.role);
-        
-//         if(!roles.includes(req.user.role)){
-//             return next(new ErrorHandler(`Role(${req.user.role}) is not allowed to access this resources.`, 403))
-//         }
-//         next();
-//     }
-// }
+module.exports.authorizeRoles = (...roles) => {
+    return (req, res, next) => {
+        if(!roles.includes(req.user.role)){
+            return next(new ErrorHandler(`Role(${req.user.role}) is not allowed to access this resources.`, 403))
+        }
+        next();
+    }
+}

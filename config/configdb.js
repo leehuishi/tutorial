@@ -1,4 +1,8 @@
 const mysql = require('mysql');
+const dotenv = require('dotenv');
+
+//setting up config.env file variables
+dotenv.config({path: './config.env'});
 
 // const dbconnection = mysql.createConnection({
 //     host:"localhost",
@@ -9,10 +13,10 @@ const mysql = require('mysql');
 
 
 const dbconnection = mysql.createPool({
-    host:"localhost",
-    user: "root",
-    password: "password",
-    database: "taskmanagement"
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PWD,
+    database: process.env.DB_DB
 });
 
 module.exports = dbconnection;
