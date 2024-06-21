@@ -32,9 +32,11 @@ app.use(cors());
 //==============================================================
 const auth = require('./routes/auth');
 const user = require('./routes/user');
+const group = require('./routes/group');
 
 app.use(auth);
 app.use(user);
+app.use(group);
 
 //manage unhandle route - part 2 (put it after all the routes !!!!! e.g. of routes = app.use(jobs);)
 app.all('*', (req, res, next) => {

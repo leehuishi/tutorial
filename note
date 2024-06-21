@@ -1,0 +1,78 @@
+
+
+// Function to fetch all users with their group lists
+module.exports.getAllUsersWithGroups = (req, res, next) => {
+    dbconnection.getConnection((err, connection) => {
+        if (err) {
+            // return next(new ErrorHandler('The database server is unavailable, or there is database connection error.', 500));
+            throw err;
+        }
+
+        // Query to fetch all users
+        connection.query('SELECT username, email, status FROM tms_users', (err, rows) => {
+            if (err) {
+                // return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+                throw err;
+            }
+
+            // Array to hold all users with their groups
+            const users = [];
+
+            // Counter to keep track of queries completed
+            let queriesCompleted = 0;
+
+            // Iterate through each user
+            rows.forEach((userRow, index) => {
+                const user = {
+                    username: userRow.username,
+                    email: userRow.email,
+                    status: userRow.status,
+                    groups: [] // Initialize groups array
+                };
+
+                // Query to fetch groups for the current user
+                connection.query('SELECT groupname FROM tms_usergroups WHERE username = ?', user.username, (err, groupRows) => {
+                    if (err) {
+                        // return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+                        throw err;
+                    }
+
+                    // Populate groups array for the user
+                    groupRows.forEach(groupRow => {
+                        user.groups.push(groupRow.groupname);
+                    });
+
+                    // Push user object with groups to users array
+                    users.push(user);
+
+                    // Increment counter for completed queries
+                    queriesCompleted++;
+
+                    // Check if all queries are completed
+                    if (queriesCompleted === rows.length) {
+                        // Release connection back to the pool
+                        connection.release();
+
+                        // Send response with users and their groups
+                        res.status(200).json({
+                            success: true,
+                            data: users
+                        });
+                    }
+                });
+            });
+
+            // If no users are found
+            if (rows.length === 0) {
+                // Release connection back to the pool
+                connection.release();
+
+                // Send response with empty users array
+                res.status(200).json({
+                    success: true,
+                    data: users
+                });
+            }
+        });
+    });
+};

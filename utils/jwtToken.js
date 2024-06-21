@@ -6,8 +6,9 @@ const sendToken = (username, statusCode, res, req) => {
     const requester_ip = req.ip;
     const requester_browser = req.headers['user-agent'];
 
-    console.log(requester_ip);
-    console.log(requester_browser);
+    // console.log(requester_ip);
+    // console.log(requester_browser);
+    
     const token = jwt.sign({ username: username, ip: requester_ip, browser: requester_browser }, process.env.JWT_SECRET, {
         expiresIn : process.env.JWT_EXPIRES_TIME
     });

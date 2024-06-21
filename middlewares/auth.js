@@ -38,6 +38,10 @@ module.exports.isAuthenticatedUser = (req, res, next) => {
                 // throw err;
             }
             else{
+                if(rows.length < 1){
+                    return next(new ErrorHandler(`User does not exist.`, 400));
+                }
+                
                 req.user = rows[0];
 
                 next();
@@ -51,11 +55,42 @@ module.exports.isAuthenticatedUser = (req, res, next) => {
 //==================================================================
 //handling user roles
 //==================================================================
-module.exports.authorizeRoles = (...roles) => {
+module.exports.authorizeGroups = (...groups) => {
     return (req, res, next) => {
-        if(!roles.includes(req.user.role)){
-            return next(new ErrorHandler(`Role(${req.user.role}) is not allowed to access this resources.`, 403))
-        }
-        next();
+        //get current user groups with username (req.user.username)
+        const query = 'SELECT groupname FROM tms_usergroups WHERE username = ?';
+
+
+        dbconnection.query(
+            query,
+            [req.user.username],
+            function(err, rows) {
+                if (err){
+                    // return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+                    throw err;
+                }
+                else{
+                    if(rows.length > 0){
+                        var ingroup = false;
+                        for(let i = 0; i < rows.length; i++){
+                            const groupname = rows[i].groupname;
+                            if(groups.includes(groupname)){
+                                ingroup = true;
+                            }
+                        }
+
+                        if(ingroup){
+                            next();
+                        }
+                        else{
+                            return next(new ErrorHandler(`User is not allowed to access this resources.`, 403));
+                        }
+                    }
+                    else{
+                        return next(new ErrorHandler(`User is not allowed to access this resources.`, 403));
+                    }
+                }
+            }
+        )
     }
 }
