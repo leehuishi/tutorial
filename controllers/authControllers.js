@@ -17,7 +17,7 @@ module.exports.loginUser = catchAsyncErrors(async (req, res, next ) => {
     }
 
     //finding user in database
-    const query = 'select password from tms_users where username = ?';
+    const query = 'select password, status from tms_users where username = ?';
 
     dbconnection.query(
         query,
@@ -33,6 +33,11 @@ module.exports.loginUser = catchAsyncErrors(async (req, res, next ) => {
                     return next(new ErrorHandler('Invalid Username or Password', 401));
                 }
                 else{
+                    //check if it is active user
+                    const raw_status = rows[0]['status'];
+                    if(raw_status === 0){
+                        return next(new ErrorHandler('User is deactivated. Please contact admin for more information', 403));
+                    }
 
                     //check if password is correct
                     //compare user password in database password
