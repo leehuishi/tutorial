@@ -4,6 +4,20 @@ const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
 const sendToken = require('../utils/jwtToken');
 const bcrypt = require('bcryptjs');
+const { Checkgroup } = require('../middlewares/auth');
+
+function checkusername(username){
+    //alphanumeric and underscore
+    //length of 4 to 32
+    const regex = /^[a-zA-Z0-9_]{4,32}$/;
+
+    if(!regex.test(username)){
+        return false;
+    }
+    else{
+        return true;
+    }
+}
 
 function checkpassword(password){
     //validate password
@@ -41,6 +55,17 @@ function checkemail(email){
 //==================================================================
 module.exports.createUser = catchAsyncErrors (async (req, res, next) => {
     const user = req.body;
+
+    //--------------------------------------------------------------
+    //handle username
+    //--------------------------------------------------------------
+    //check username format
+    const checkuser = checkusername(user.username);
+
+    if(!checkuser){
+        return next(new ErrorHandler('Invalid username format', 400));
+    }
+    //--------------------------------------------------------------
 
     //--------------------------------------------------------------
     //handle password
@@ -94,7 +119,7 @@ module.exports.createUser = catchAsyncErrors (async (req, res, next) => {
                     return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
                 }
 
-                throw err;
+                // throw err;
             }
             else{
                 res.status(200).json({
@@ -113,12 +138,12 @@ module.exports.createUser = catchAsyncErrors (async (req, res, next) => {
 //==================================================================
 module.exports.getOwnProfile = (req, res, next) => {
     dbconnection.query(
-        'SELECT * FROM tms_users WHERE username = ? ', 
+        'SELECT username, email, status FROM tms_users WHERE username = ? ', 
         [req.user.username],
         function(err, rows) {
             if (err){
-                // return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-                throw err;
+                return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+                // throw err;
             }
             else{
                 res.status(200).json({
@@ -137,15 +162,15 @@ module.exports.getOwnProfile = (req, res, next) => {
 module.exports.getAllUser = (req, res, next) => {
     dbconnection.getConnection((err, connection) => {
         if (err) {
-            // return next(new ErrorHandler('The database server is unavailable, or there is database connection error.', 500));
-            throw err;
+            return next(new ErrorHandler('The database server is unavailable, or there is database connection error.', 500));
+            // throw err;
         }
 
         // Query to fetch all users
         connection.query('SELECT username, email, status FROM tms_users', (err, rows) => {
             if (err) {
-                // return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-                throw err;
+                return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+                // throw err;
             }
 
             // Array to hold all users with their groups
@@ -166,8 +191,8 @@ module.exports.getAllUser = (req, res, next) => {
                 // Query to fetch groups for the current user
                 connection.query('SELECT groupname FROM tms_usergroups WHERE username = ?', user.username, (err, groupRows) => {
                     if (err) {
-                        // return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-                        throw err;
+                        return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+                        // throw err;
                     }
 
                     // Populate groups array for the user
@@ -238,7 +263,7 @@ module.exports.updateOwnPassword = catchAsyncErrors (async (req, res, next) => {
             if (err){
                 return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
 
-                throw err;
+                // throw err;
             }
             else{
                 res.status(200).json({
@@ -278,7 +303,7 @@ module.exports.updateOwnEmail = catchAsyncErrors (async (req, res, next) => {
             if (err){
                 return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
 
-                throw err;
+                // throw err;
             }
             else{
                 res.status(200).json({
@@ -365,8 +390,8 @@ module.exports.updateUserByUsername = catchAsyncErrors (async (req, res, next) =
         insertdata,
         function(err, rows) {
             if (err){
-                // return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-                throw err;
+                return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+                // throw err;
             }
             else{
                 res.status(200).json({
@@ -378,3 +403,103 @@ module.exports.updateUserByUsername = catchAsyncErrors (async (req, res, next) =
         }
     )
 });
+
+//==================================================================
+//check if user is admin
+//==================================================================
+module.exports.getCheckIsAdmin = (req, res, next) => {
+
+    Checkgroup(req.user.username, 'admin')
+    .then(result => {
+        if(result){
+            res.status(200).json({
+                success: true,
+                data: {
+                    isAdmin: true
+                }
+            });
+        }
+        else{
+            res.status(200).json({
+                success: true,
+                data: {
+                    isAdmin: false
+                }
+            });
+        }
+    })
+    .catch(err => {
+        console.error('Error checking group:', err);
+    });
+
+    
+
+    
+
+
+    // dbconnection.query(
+    //     'SELECT groupname FROM tms_usergroups WHERE username = ? and groupname in ("admin", "super_admin")', 
+    //     [req.user.username],
+    //     function(err, rows) {
+    //         if (err){
+    //             return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+    //             // throw err;
+    //         }
+    //         else{
+    //             if(rows.length > 0){
+    //                 res.status(200).json({
+    //                     success: true,
+    //                     data: {
+    //                         isAdmin: true
+    //                     }
+    //                 });
+    //             }
+    //             else{
+    //                 res.status(200).json({
+    //                     success: true,
+    //                     data: {
+    //                         isAdmin: false
+    //                     }
+    //                 });
+    //             }
+    //         }
+            
+    //     }
+    // )
+}
+
+
+//==================================================================
+//check if user exist
+//==================================================================
+module.exports.checkUser = (req, res, next) => {
+    dbconnection.query(
+        'SELECT username FROM tms_users WHERE username = ?', 
+        [req.params.username],
+        function(err, rows) {
+            if (err){
+                return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+                // throw err;
+            }
+            else{
+                if(rows.length > 0){
+                    res.status(200).json({
+                        success: true,
+                        data: {
+                            usernameexist: true
+                        }
+                    });
+                }
+                else{
+                    res.status(200).json({
+                        success: true,
+                        data: {
+                            usernameexist: false
+                        }
+                    });
+                }
+            }
+            
+        }
+    )
+}
