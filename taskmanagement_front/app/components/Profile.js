@@ -6,12 +6,15 @@ import Axiosinstance from "../../AxiosInstance";
 import Axios from 'axios'
 import { CSSTransition } from 'react-transition-group';
 import Header from "./Header";
+import { useNavigate } from "react-router-dom"
+import { removeAuthTokenCookie } from "../RemoveCookieUtils";
 
 
 
 
 function Profile(){
     const appDispatch = useContext(DispatchContext)
+    const navigate = useNavigate()
 
     const initialState = {
         profileData:{
@@ -123,7 +126,14 @@ function Profile(){
                 
             }
             catch(e){
-                appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+                if(e.response.status === 403){
+                    appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
+                    removeAuthTokenCookie()
+                    navigate('/');
+                }
+                else{
+                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+                }
             }
         }
         fetchData()
@@ -161,8 +171,14 @@ function Profile(){
 
                 }
                 catch(e){
-                    console.log("There was a problem " + e)
+                    if(e.response.status === 403){
+                    appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
+                    removeAuthTokenCookie()
+                    navigate('/');
+                }
+                else{
                     appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+                }
                 }
 
             }
@@ -186,9 +202,16 @@ function Profile(){
 
                 }
                 catch(e){
-                    dispatch({type: "catchEmailerror"})
-                    console.log("There was a problem " + e)
-                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+                    if(e.response.status === 403){
+                        appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
+                        removeAuthTokenCookie()
+                        navigate('/');
+                    }
+                    else{
+                        dispatch({type: "catchEmailerror"})
+                        console.log("There was a problem " + e)
+                        appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+                    }
                 }
 
             }

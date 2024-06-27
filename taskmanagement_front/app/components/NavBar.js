@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import DispatchContext from "../DispatchContext"
 import { useImmerReducer } from 'use-immer'
 import Axiosinstance from "../../AxiosInstance"
+import { removeAuthTokenCookie } from "../RemoveCookieUtils"
 
 function NavBar(props){
     const appDispatch = useContext(DispatchContext)
@@ -43,15 +44,21 @@ function NavBar(props){
 
                 if(response.data.success){
                     const data = response.data.data
-                    if(data.isAdmin && data.isAdmin){
+                    if(data.isAdmin){
                         dispatch({type: "userIsAdmin", value: data.isAdmin})
                     }
                 }
                 
             }
             catch(e){
-                console.log(e);
-                appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later...."})
+                if(e.response.status === 403){
+                    appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
+                    removeAuthTokenCookie()
+                    navigate('/');
+                }
+                else{
+                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+                }
             }
         }
         fetchData()

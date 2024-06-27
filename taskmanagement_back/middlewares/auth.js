@@ -3,7 +3,9 @@ const jwt = require('jsonwebtoken');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
 
-
+//==================================================================
+//check if user is in group
+//==================================================================
 const Checkgroup = (userid, groupname) => {
     return new Promise((resolve, reject) => {
         const query = 'SELECT groupname FROM tms_usergroups WHERE username = ? and groupname = ?';
@@ -30,10 +32,45 @@ const Checkgroup = (userid, groupname) => {
 
 module.exports.Checkgroup = Checkgroup;
 
+
+//==================================================================
+//check if user is active or deactivate
+//==================================================================
+const CheckActive = (userid) => {
+    return new Promise((resolve, reject) => {
+        const query = 'SELECT * FROM tms_users WHERE username = ?';
+
+        dbconnection.query(
+            query,
+            [userid],
+            function(err, rows) {
+                if (err) {
+                    // Reject the promise with the error
+                    reject(err);
+                } else {
+                    // Check if rows exist
+                    if (rows.length > 0) {
+                        if(rows[0].status == 1){
+                            resolve(rows[0]); //user active
+                        }
+                        else{
+                            resolve(false); //user deactive
+                        }
+                         
+                    } else {
+                        resolve(false); // user doesn't exist
+                    }
+                }
+            }
+        );
+    });
+};
+
+
 //==================================================================
 //check if user is authenicated or not
 //==================================================================
-module.exports.isAuthenticatedUser = (req, res, next) => {
+module.exports.isAuthenticatedUser = async(req, res, next) => {
     let token;
 
     if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
@@ -41,42 +78,45 @@ module.exports.isAuthenticatedUser = (req, res, next) => {
     }
 
     if(!token) {
-        return next(new ErrorHandler('Login first to access this resource.', 401));
+        return next(new ErrorHandler('Login first to access this resource.', 403));
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const query = 'SELECT * FROM tms_users WHERE username = ?';
-
-    if(req.ip !== decoded.ip){
-        return next(new ErrorHandler('Login first to access this resource.', 401));
-    }
-
-    if(req.headers['user-agent'] !== decoded.browser){
-        return next(new ErrorHandler('Login first to access this resource.', 401));
-    }
-
-    dbconnection.query(
-        query,
-        [decoded.username],
-        function(err, rows) {
-            if (err){
-                return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-                // throw err;
-            }
-            else{
-                if(rows.length < 1){
-                    return next(new ErrorHandler(`User does not exist.`, 400));
-                }
-                
-                req.user = rows[0];
-
-                next();
-            }
-            
+    try{
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if(req.ip !== decoded.ip){
+            return next(new ErrorHandler('Login first to access this resource.', 403));
         }
-    )
-
+    
+        if(req.headers['user-agent'] !== decoded.browser){
+            return next(new ErrorHandler('Login first to access this resource.', 403));
+        }
+    
+    
+        try {
+            const results = await Promise.all([CheckActive(decoded.username)]);
+            
+            // results will be an array containing the resolved value of CheckActive
+            const activeData = results[0];
+    
+            if (!activeData) {
+                return next(new ErrorHandler(`User is not allowed to access this resource.`, 403));
+            } else {
+                req.user = activeData;
+                next(); // User is authorized to proceed
+            }   
+        }
+        catch(err){
+            // Handle error appropriately
+            console.error("Error authorizing user:", err);
+            return next(new ErrorHandler(`Error authorizing user: ${err.message}`, 500));
+        }
+    }
+    catch(e){
+        if (e instanceof jwt.JsonWebTokenError) {
+            // Handle JWT errors (like malformed token, invalid token, etc.)
+            return next(new ErrorHandler('Invalid token. Please log in again.', 403));
+        }
+    }
 };
 
 //==================================================================

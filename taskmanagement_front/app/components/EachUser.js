@@ -5,9 +5,11 @@ import Axiosinstance from "../../AxiosInstance";
 import axios from "axios";
 import { CSSTransition } from "react-transition-group";
 import Select from "react-select";
+import { useNavigate } from "react-router-dom"
 
 function EachUser(props){
     const appDispatch = useContext(DispatchContext)
+    const navigate = useNavigate()
 
     const initialState = {
         editmode : false,
@@ -39,7 +41,8 @@ function EachUser(props){
         },
         readgroup: {
             value: props.user.groups
-        }
+        },
+        switchingmodecount: 0
 
     }
 
@@ -96,6 +99,13 @@ function EachUser(props){
                 draft.readgroup.value = action.value
                 draft.groups.selected = action.value.map(option => ({ value: option, label: option }));
                 return
+            case "updatevalue2":
+                draft.groups.selected = action.value.map(option => ({ value: option, label: option }));
+                return
+            case "updatevalue3":
+                draft.email.value = draft.reademail.value;
+                draft.status.value = draft.readstatus.value;
+                return
             case "groupsImmediately":
                 draft.groups.selected = action.value
                 return
@@ -104,6 +114,9 @@ function EachUser(props){
                 return;
             case "groupsInitiateSelected":
                 draft.groups.selected = action.value.map(option => ({ value: option, label: option }));
+                return;
+            case "switchmodecheck":
+                draft.switchingmodecount++
                 return;
             default:
                 return;
@@ -160,7 +173,6 @@ function EachUser(props){
                         usergrplist.push("admin")
                     }
 
-                    // console.log(usergrplist)
                     await Axiosinstance.post(url2, {groups: usergrplist}) //assign user to groups
                     console.log("User added in groups.")
                     appDispatch({type: "flashMessage", value: "User update successful"})
@@ -171,7 +183,14 @@ function EachUser(props){
 
                 }
                 catch(e){
-                    console.log("There was a problem " + e)
+                    if(e.response.status === 403){
+                        appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
+                        navigate('/home');
+                    }
+                    else{
+                        console.log("There was a problem or the request was cancelled")
+                        appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+                    }
                 }
 
             }
@@ -179,6 +198,39 @@ function EachUser(props){
             return () => ourRequest.cancel()
         }
     }, [state.submitCount])
+   
+    //=============================================================================
+
+    //=============================================================================
+    //check user if is still admin
+    useEffect(() => {
+        if(state.switchingmodecount){
+            //incase cancel
+            const ourRequest = axios.CancelToken.source()
+
+            async function fetchResults(){
+                try{
+                    const response = await Axiosinstance.get("/user/isadmin")
+    
+                    if(response.data.success){
+                        const data = response.data.data
+                        if(!data.isAdmin){
+                            appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
+                            navigate('/home');
+                        }
+                    }
+                    
+                }
+                catch(e){
+                    console.log(e);
+                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later...."})
+                }
+
+            }
+            fetchResults()
+            return () => ourRequest.cancel()
+        }
+    }, [state.switchingmodecount])
    
     //=============================================================================
 
@@ -219,22 +271,27 @@ function EachUser(props){
     async function switchmode(e){
         if(state.editmode){
             dispatch({type: "save"})
+            dispatch({type: "switchmodecheck"})
         }
         else{
             dispatch({type: "editing"})
+            dispatch({type: "switchmodecheck"})
+            if(state.submitCount > 0){
+                dispatch({type: "updatevalue3"})
+            }
         }
     }
     
     async function switchmode2(e){
-        console.log(state.submitCount);
         if(state.submitCount > 0){
             dispatch({type: "save"})
-            console.log(state.readgroup.value)
-            dispatch({type: "updatevalue", value: state.readgroup.value})
+            dispatch({type: "updatevalue2", value: state.readgroup.value})
+            dispatch({type: "switchmodecheck"})
         }
         else{
             dispatch({type: "save"})
             dispatch({type: "resetvalue"})
+            dispatch({type: "switchmodecheck"})
         }
         
     }

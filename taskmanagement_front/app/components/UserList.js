@@ -5,9 +5,11 @@ import Axiosinstance from "../../AxiosInstance";
 import Page from "./Page";
 import CreateUser from "./CreateUser";
 import EachUser from "./EachUser";
+import { useNavigate } from "react-router-dom"
 
 function UserList({ groupslist }){
     const appDispatch = useContext(DispatchContext)
+    const navigate = useNavigate()
 
     const initialState = {
         users : []
@@ -44,7 +46,14 @@ function UserList({ groupslist }){
                 
             }
             catch(e){
-                appDispatch({ type: "flashMessage", value: "We are currently having some technical issue. Please try again later."})
+                if(e.response.status === 403){
+                    appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
+                    navigate('/home');
+                }
+                else{
+                    console.log("There was a problem or the request was cancelled")
+                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+                }
             }
         }
         fetchData()

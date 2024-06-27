@@ -6,11 +6,13 @@ import DispatchContext from "../DispatchContext"
 import { useImmerReducer } from 'use-immer'
 import Axiosinstance from "../../AxiosInstance"
 import axios from "axios"
-import { Navigate } from "react-router-dom"
+import { useNavigate, Navigate } from "react-router-dom"
 import Header from "./Header"
+import { removeAuthTokenCookie } from "../RemoveCookieUtils"
 
 function UserManage(){
     const appDispatch = useContext(DispatchContext)
+    const navigate = useNavigate()
 
     const initialState = {
         groups: [],
@@ -51,9 +53,16 @@ function UserManage(){
                 
             }
             catch(e){
-
-                //add check status code if it is no access!!!!!!!!!!!!!!!!!!!!!!!!
-                appDispatch({ type: "flashMessage", value: "We are currently having some technical issue. Please try again later."})
+                if(e.response.status === 403){
+                    appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
+                    removeAuthTokenCookie()
+                    navigate('/');
+                }
+                else{
+                    console.log(e);
+                    appDispatch({ type: "flashMessage", value: "We are currently having some technical issue. Please try again later."})
+                }
+                
             }
         }
         fetchData()
@@ -70,7 +79,6 @@ function UserManage(){
                     const data = response.data.data
                     if(data.isAdmin && data.isAdmin){
                         dispatch({type: "checkIsAdmin", value: data.isAdmin})
-                        console.log(data.isAdmin)
                     }
                 }
                 
@@ -90,9 +98,8 @@ function UserManage(){
         <>
             <Header />
             {state.isadmin == "" ?
-                // <Navigate to="/home" />
                 <Page title="User Management" wide={true} top={false} tablewide={true}>
-                    User you no longer have access. Reach out to your admin for more information.
+                    User you no longer have access. Please approach your admin for more information.
                 </Page>
                 : 
                 <>
@@ -104,7 +111,7 @@ function UserManage(){
                             <UserList groupslist={state.groups}/>
                         </Page>
                     :
-                        <Navigate to="/" />
+                        <Navigate to="/home" />
                     }
                 </>
             }

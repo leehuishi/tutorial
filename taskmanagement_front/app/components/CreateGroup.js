@@ -5,10 +5,13 @@ import { useImmerReducer } from 'use-immer'
 import Axiosinstance from "../../AxiosInstance";
 import Axios from 'axios'
 import { CSSTransition } from 'react-transition-group';
+import { useNavigate } from "react-router-dom"
+
 
 
 function CreateGroup({ onGroupAdd }){
     const appDispatch = useContext(DispatchContext)
+    const navigate = useNavigate()
 
     const initialState = {
         groupname: {
@@ -98,8 +101,14 @@ function CreateGroup({ onGroupAdd }){
                     }
                 }
                 catch(e){
-                    console.log("There was a problem or the request was cancelled")
-                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+                    if(e.response.status === 403){
+                        appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
+                        navigate('/home');
+                    }
+                    else{
+                        console.log("There was a problem or the request was cancelled")
+                        appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+                    }
                 }
 
             }
@@ -125,7 +134,14 @@ function CreateGroup({ onGroupAdd }){
                     
                 }
                 catch(e){
-                    console.log("There was a problem " + e)
+                    if(e.response.status === 403){
+                        appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
+                        navigate('/home');
+                    }
+                    else{
+                        console.log("There was a problem or the request was cancelled")
+                        appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+                    }
                 }
 
             }

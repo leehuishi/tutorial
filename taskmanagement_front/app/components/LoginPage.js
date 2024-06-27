@@ -14,15 +14,18 @@ function LoginPage(props){
     const [username, setUsername] = useState()
     const [password, setPassword] = useState()
 
+
     async function handleSubmit(e) {
         e.preventDefault()
 
         if(!username){
             appDispatch({ type: "flashMessageError", value: "Please enter your username"})
+            return
         }
         
         if (!password){
             appDispatch({ type: "flashMessageError", value: "Please enter your password"})
+            return
         }
 
         try{
@@ -41,13 +44,12 @@ function LoginPage(props){
                 
             }
             else{
-                console.log("Incorrect username / password.")
-                appDispatch({ type: "flashMessageError", value: "Invalid username / password."})
+                appDispatch({ type: "flashMessageError", value: "Invalid Login."})
             }
         }
         catch(e){
             if(e.code === "ERR_BAD_REQUEST"){
-                appDispatch({ type: "flashMessageError", value: "Invalid username / password."})
+                appDispatch({ type: "flashMessageError", value: "Invalid Login."})
             }
             else{
                 appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})

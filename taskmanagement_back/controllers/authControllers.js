@@ -8,6 +8,26 @@ const bcrypt = require('bcryptjs');
 //==================================================================
 //Login user 
 //==================================================================
+// Function to check login
+function checkLogin(username) {
+    return new Promise((resolve, reject) => {
+        const query = 'SELECT password, status FROM tms_users WHERE username = ?';
+        
+        dbconnection.query(query, [username], function(err, rows) {
+            if (err) {
+                reject(err); // Reject with the database query error
+            } else {
+                // Check if rows exist
+                if (rows.length > 0) {
+                    resolve(rows[0]); // Resolve with the first row (assuming username is unique)
+                } else {
+                    resolve(false); // Resolve with false if user doesn't exist
+                }
+            }
+        });
+    });
+}
+
 module.exports.loginUser = catchAsyncErrors(async (req, res, next ) => {
     const { username, password } = req.body;
 
@@ -16,45 +36,34 @@ module.exports.loginUser = catchAsyncErrors(async (req, res, next ) => {
         return next(new ErrorHandler('Please enter username & password'), 400)
     }
 
-    //finding user in database
-    const query = 'select password, status from tms_users where username = ?';
+    try {
+        const loginres = await checkLogin(username);
+        
+        if (!loginres) {
+            return next(new ErrorHandler('Invalid Username or Password', 401));
+        }
 
-    dbconnection.query(
-        query,
-        [username],
-        catchAsyncErrors(async function (err, rows) {
-            if (err){
-                return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-                // throw err;
-            }
-            else{
-                if(rows.length < 1){
-                    //errorHandling
-                    return next(new ErrorHandler('Invalid Username or Password', 401));
-                }
-                else{
-                    //check if it is active user
-                    const raw_status = rows[0]['status'];
-                    if(raw_status === 0){
-                        return next(new ErrorHandler('User is deactivated. Please contact admin for more information', 403));
-                    }
+        // Check if user is active
+        const raw_status = loginres['status'];
+        if (raw_status === 0) {
+            return next(new ErrorHandler('User is deactivated. Please contact admin for more information', 403));
+        }
 
-                    //check if password is correct
-                    //compare user password in database password
-                    const raw_password = rows[0]['password'];
-                    
-                    const isPasswordMatched = await bcrypt.compare(password, raw_password);
+        // Check if password is correct
+        const raw_password = loginres['password'];
+        const isPasswordMatched = await bcrypt.compare(password, raw_password);
 
-                    if(!isPasswordMatched) {
-                        return next(new ErrorHandler('Invalid Username or Password', 401));
-                    }
+        if (!isPasswordMatched) {
+            return next(new ErrorHandler('Invalid Username or Password', 401));
+        }
 
-                    sendToken(username, 200, res, req);
+        // If all checks pass, send token
+        sendToken(username, 200, res, req);
 
-                }
-            }
-        })
-    );
+    } catch (error) {
+        console.error('Error in loginUser:', error);
+        return next(new ErrorHandler('Internal Server Error', 500)); // Handle other errors
+    }
 });
 
 
