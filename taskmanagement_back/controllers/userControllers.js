@@ -53,6 +53,25 @@ function checkemail(email){
 //==================================================================
 //create new user
 //==================================================================
+// Query to insert new user
+function insertNewUser(insertdata) {
+    return new Promise((resolve, reject) => {
+        const query = 'INSERT INTO tms_users (username, password, email, status) VALUES (?, ?, ?, ?)';
+        
+        dbconnection.query(query, insertdata, function(err, rows) {
+            if (err) {
+                reject(err); // Reject with the database query error
+            } else {
+                //insert data successfully
+                resolve(true); 
+            }
+        });
+    });
+}
+
+//---------------------------------------------
+//---------------------------------------------
+
 module.exports.createUser = catchAsyncErrors (async (req, res, next) => {
     const user = req.body;
 
@@ -97,148 +116,192 @@ module.exports.createUser = catchAsyncErrors (async (req, res, next) => {
         email = "";
     }
     //--------------------------------------------------------------
-
     const insertdata = [user.username, hashpassword, email, 1];
-    const insertcol = ['username', 'password', 'email', 'status'];
-
-    const joindata = "'" + insertdata.join("' , '") + "'";
-    const joincol = insertcol.join();
-
-
-    const query = 'INSERT INTO tms_users (' + joincol + ') VALUES (?, ?, ?, ?)';
-
-    dbconnection.query(
-        query,
-        insertdata,
-        function(err, rows) {
-            if (err){
-                if(err.code === "ER_DUP_ENTRY"){
-                    return next(new ErrorHandler('Username Exist. Please use another username', 500));
-                }
-                else{
-                    return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-                }
-
-                // throw err;
-            }
-            else{
-                res.status(200).json({
-                    success: true,
-                    message: "User created successful",
-                });
-            }
-            
+   
+    try {
+        const newUserRes = await insertNewUser(insertdata);
+        
+        if(newUserRes){
+            res.status(200).json({
+                success: true,
+                message: "User created successful",
+            });
         }
-    )
+
+    } catch (err) {
+        if(err.code === "ER_DUP_ENTRY"){
+            return next(new ErrorHandler('Username Exist. Please use another username', 500));
+        }
+        else{
+            return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+        }
+    }
 });
 
 
 //==================================================================
 //get user profile
 //==================================================================
-module.exports.getOwnProfile = (req, res, next) => {
-    dbconnection.query(
-        'SELECT username, email, status FROM tms_users WHERE username = ? ', 
-        [req.user.username],
-        function(err, rows) {
-            if (err){
-                return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-                // throw err;
+// Query to get user information
+function userInfo(username) {
+    return new Promise((resolve, reject) => {
+        const query = 'SELECT username, email, status FROM tms_users WHERE username = ? ';
+        
+        dbconnection.query(query, [username], function(err, rows) {
+            if (err) {
+                reject(err); // Reject with the database query error
+            } else {
+                if(rows.length > 0){
+                    resolve(rows); //user exist
+                }
+                else{
+                    resolve(false); //user doesn't exist
+                }
             }
-            else{
-                res.status(200).json({
-                    success: true,
-                    data: rows,
-                });
-            }
-            
-        }
-    )
+        });
+    });
 }
+
+//---------------------------------------------
+//---------------------------------------------
+
+module.exports.getOwnProfile = catchAsyncErrors(async (req, res, next) => {
+    try {
+        const userRes = await userInfo(req.user.username);
+        
+        if(userRes){
+            res.status(200).json({
+                success: true,
+                data: userRes,
+            });
+        }
+        else{
+            return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+        }
+
+    } catch (err) {
+        return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+    }
+});
 
 //==================================================================
 //get all user
 //==================================================================
-module.exports.getAllUser = (req, res, next) => {
-    dbconnection.getConnection((err, connection) => {
-        if (err) {
-            return next(new ErrorHandler('The database server is unavailable, or there is database connection error.', 500));
-            // throw err;
-        }
-
-        // Query to fetch all users
-        connection.query('SELECT username, email, status FROM tms_users', (err, rows) => {
+// Query to get all users info
+function allUserInfo() {
+    return new Promise((resolve, reject) => {
+        const query = 'SELECT username, email, status FROM tms_users';
+        
+        dbconnection.query(query, function(err, rows) {
             if (err) {
-                return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-                // throw err;
+                reject(err); // Reject with the database query error
+            } else {
+                if(rows.length > 0){
+                    resolve(rows); //there are users
+                }
+                else{
+                    resolve(false); //there are no users
+                }
             }
+        });
+    });
+}
 
-            // Array to hold all users with their groups
-            const users = [];
+//---------------------------------------------
+//---------------------------------------------
 
-            // Counter to keep track of queries completed
-            let queriesCompleted = 0;
+// Query to get all users info
+function eachUserGrp(username) {
+    return new Promise((resolve, reject) => {
+        const query = 'SELECT groupname FROM tms_usergroups WHERE username = ?';
+        
+        dbconnection.query(query, [username], function(err, groupRows) {
+            if (err) {
+                reject(err); // Reject with the database query error
+            } else {
+                if(groupRows.length > 0){
+                    resolve(groupRows); //user is in group(s)
+                }
+                else{
+                    resolve(false); //user not in any groups
+                }
+            }
+        });
+    });
+}
 
-            // Iterate through each user
-            rows.forEach((userRow, index) => {
+module.exports.getAllUser = catchAsyncErrors(async (req, res, next) => {
+    try {
+        const allUserRes = await allUserInfo();
+        
+        // Array to hold all users with their groups
+        const users = [];
+
+        if(allUserRes){
+            const userPromises = allUserRes.map(catchAsyncErrors(async (userRow) => {
                 const user = {
                     username: userRow.username,
                     email: userRow.email,
                     status: userRow.status,
                     groups: [] // Initialize groups array
                 };
-
-                // Query to fetch groups for the current user
-                connection.query('SELECT groupname FROM tms_usergroups WHERE username = ?', user.username, (err, groupRows) => {
-                    if (err) {
-                        return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-                        // throw err;
-                    }
-
+    
+                const groupRows = await eachUserGrp(userRow.username);
+    
+                if (groupRows) {
                     // Populate groups array for the user
                     groupRows.forEach(groupRow => {
                         user.groups.push(groupRow.groupname);
                     });
+                }
+    
+                // Push user object with groups to users array
+                users.push(user);
+            }));
 
-                    // Push user object with groups to users array
-                    users.push(user);
+            // Wait for all promises to resolve using Promise.all
+            await Promise.all(userPromises);
 
-                    // Increment counter for completed queries
-                    queriesCompleted++;
-
-                    // Check if all queries are completed
-                    if (queriesCompleted === rows.length) {
-                        // Release connection back to the pool
-                        connection.release();
-
-                        // Send response with users and their groups
-                        res.status(200).json({
-                            success: true,
-                            data: users
-                        });
-                    }
-                });
+            res.status(200).json({
+                success: true,
+                data: users
             });
+        }
+        else{
+            // Send response with empty users array
+            res.status(200).json({
+                success: true,
+                data: users
+            });
+        }
 
-            // If no users are found
-            if (rows.length === 0) {
-                // Release connection back to the pool
-                connection.release();
+    } catch (err) {
+        return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+    }
+});
 
-                // Send response with empty users array
-                res.status(200).json({
-                    success: true,
-                    data: users
-                });
+//==================================================================
+//Update own password
+//==================================================================
+// Query to update password
+function updatePwd(password, username) {
+    return new Promise((resolve, reject) => {
+        const query = 'Update tms_users SET password = ? where username = ?';
+        
+        dbconnection.query(query, [password, username], function(err, rows) {
+            if (err) {
+                reject(err); // Reject with the database query error
+            } else {
+                resolve(true); //Update password successful
             }
         });
     });
 }
 
-//==================================================================
-//Update own password
-//==================================================================
-module.exports.updateOwnPassword = catchAsyncErrors (async (req, res, next) => {
+//---------------------------------------------
+//---------------------------------------------
+
+module.exports.updateOwnPassword = catchAsyncErrors(async (req, res, next) => {
     const user_input = req.body;
 
     const new_password = user_input.password;
@@ -253,34 +316,48 @@ module.exports.updateOwnPassword = catchAsyncErrors (async (req, res, next) => {
     // hash new password
     const hashpassword = await bcrypt.hash(new_password, 10);
 
-
-    const query = 'Update tms_users SET password = ? where username = ?';
-
-    dbconnection.query(
-        query,
-        [hashpassword, req.user.username],
-        function(err, rows) {
-            if (err){
-                return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-
-                // throw err;
-            }
-            else{
-                res.status(200).json({
-                    success: true,
-                    message: "Update successful.",
-                });
-            }
-            
+    //--------------------------------------------------------
+    try {
+        const updatePwdRes = await updatePwd(hashpassword, req.user.username);
+        
+        if(updatePwdRes){
+            res.status(200).json({
+                success: true,
+                message: "Update successful.",
+            });
         }
-    )
+        else{
+            return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+        }
+
+    } catch (err) {
+        return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+    }
 });
 
 
 //==================================================================
 //Update own email
 //==================================================================
-module.exports.updateOwnEmail = catchAsyncErrors (async (req, res, next) => {
+// Query to update email
+function updateEmail(email, username) {
+    return new Promise((resolve, reject) => {
+        const query = 'Update tms_users SET email = ? where username = ?';
+        
+        dbconnection.query(query, [email, username], function(err, rows) {
+            if (err) {
+                reject(err); // Reject with the database query error
+            } else {
+                resolve(true); //Update password successful
+            }
+        });
+    });
+}
+
+//---------------------------------------------
+//---------------------------------------------
+
+module.exports.updateOwnEmail = catchAsyncErrors(async (req, res, next) => {
     const user_input = req.body;
 
     const new_email = user_input.email;
@@ -294,40 +371,52 @@ module.exports.updateOwnEmail = catchAsyncErrors (async (req, res, next) => {
         }
     }
 
-    const query = 'Update tms_users SET email = ? where username = ?';
-
-    dbconnection.query(
-        query,
-        [new_email, req.user.username],
-        function(err, rows) {
-            if (err){
-                return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-
-                // throw err;
-            }
-            else{
-                res.status(200).json({
-                    success: true,
-                    message: "Update successful.",
-                });
-            }
-            
+    //--------------------------------------------------------
+    try {
+        const updateEmailRes = await updateEmail(new_email, req.user.username);
+        
+        if(updateEmailRes){
+            res.status(200).json({
+                success: true,
+                message: "Update successful.",
+            });
         }
-    )
+        else{
+            return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+        }
+
+    } catch (err) {
+        return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+    }
 });
 
 
 //==================================================================
 //Update by profile
 //==================================================================
-module.exports.updateUserByUsername = catchAsyncErrors (async (req, res, next) => {
+// Query to update profile
+function updateProfile(query, updatedata) {
+    return new Promise((resolve, reject) => {
+        dbconnection.query(query, updatedata, function(err, rows) {
+            if (err) {
+                reject(err); // Reject with the database query error
+            } else {
+                resolve(true); //Update password successful
+            }
+        });
+    });
+}
+
+//---------------------------------------------
+//---------------------------------------------
+
+module.exports.updateUserByUsername = catchAsyncErrors(async (req, res, next) => {
     if(!req.params.username){
         return next(new ErrorHandler('Missing required parameter.', 400));
     }
 
     const user = req.body;
-    const insertdata = [];
-    
+    const updatedata = [];
 
     //--------------------------------------------------------------
     //handle password
@@ -344,7 +433,7 @@ module.exports.updateUserByUsername = catchAsyncErrors (async (req, res, next) =
 
         const hashpassword = await bcrypt.hash(user.password, 10);
         query += "password = ?, "
-        insertdata.push(hashpassword);
+        updatedata.push(hashpassword);
     }
     //--------------------------------------------------------------
 
@@ -365,7 +454,7 @@ module.exports.updateUserByUsername = catchAsyncErrors (async (req, res, next) =
         email = "";
     }
 
-    insertdata.push(email);
+    updatedata.push(email);
     //--------------------------------------------------------------
 
 
@@ -376,32 +465,32 @@ module.exports.updateUserByUsername = catchAsyncErrors (async (req, res, next) =
         return next(new ErrorHandler('Invalid status', 400));
     }
     else{
-        insertdata.push(user.status);
+        updatedata.push(user.status);
     }
     
     //--------------------------------------------------------------
 
-    insertdata.push(req.params.username);
+    updatedata.push(req.params.username);
 
     query += 'email = ?, status = ? WHERE username = ?';
 
-    dbconnection.query(
-        query,
-        insertdata,
-        function(err, rows) {
-            if (err){
-                return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-                // throw err;
-            }
-            else{
-                res.status(200).json({
-                    success: true,
-                    message: "User update successful",
-                });
-            }
-            
+    //--------------------------------------------------------
+    try {
+        const updateProfileRes = await updateProfile(query, updatedata);
+        
+        if(updateProfileRes){
+            res.status(200).json({
+                success: true,
+                message: "User update successful",
+            });
         }
-    )
+        else{
+            return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+        }
+
+    } catch (err) {
+        return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+    }
 });
 
 //==================================================================
@@ -431,75 +520,57 @@ module.exports.getCheckIsAdmin = (req, res, next) => {
     .catch(err => {
         console.error('Error checking group:', err);
     });
-
-    
-
-    
-
-
-    // dbconnection.query(
-    //     'SELECT groupname FROM tms_usergroups WHERE username = ? and groupname in ("admin", "super_admin")', 
-    //     [req.user.username],
-    //     function(err, rows) {
-    //         if (err){
-    //             return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-    //             // throw err;
-    //         }
-    //         else{
-    //             if(rows.length > 0){
-    //                 res.status(200).json({
-    //                     success: true,
-    //                     data: {
-    //                         isAdmin: true
-    //                     }
-    //                 });
-    //             }
-    //             else{
-    //                 res.status(200).json({
-    //                     success: true,
-    //                     data: {
-    //                         isAdmin: false
-    //                     }
-    //                 });
-    //             }
-    //         }
-            
-    //     }
-    // )
 }
 
 
 //==================================================================
 //check if user exist
 //==================================================================
-module.exports.checkUser = (req, res, next) => {
-    dbconnection.query(
-        'SELECT username FROM tms_users WHERE username = ?', 
-        [req.params.username],
-        function(err, rows) {
-            if (err){
-                return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-                // throw err;
-            }
-            else{
+// Query to check if username exist
+function checkUsername(username) {
+    return new Promise((resolve, reject) => {
+        const query = 'SELECT username FROM tms_users WHERE username = ?';
+        
+        dbconnection.query(query, [username], function(err, rows) {
+            if (err) {
+                reject(err); // Reject with the database query error
+            } else {
                 if(rows.length > 0){
-                    res.status(200).json({
-                        success: true,
-                        data: {
-                            usernameexist: true
-                        }
-                    });
+                    resolve(true); //username exist
                 }
                 else{
-                    res.status(200).json({
-                        success: true,
-                        data: {
-                            usernameexist: false
-                        }
-                    });
+                    resolve(false); //username doesn't exist
                 }
             }
-            
-        }
-    )
+        });
+    });
 }
+
+//---------------------------------------------
+//---------------------------------------------
+
+module.exports.checkUser = catchAsyncErrors(async(req, res, next) => {
+    try {
+        const usernameRes = await checkUsername(req.params.username);
+        
+        if(usernameRes){
+            res.status(200).json({
+                success: true,
+                data: {
+                    usernameexist: true
+                }
+            });
+        }
+        else{
+            res.status(200).json({
+                success: true,
+                data: {
+                    usernameexist: false
+                }
+            });
+        }
+
+    } catch (err) {
+        return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+    }
+});

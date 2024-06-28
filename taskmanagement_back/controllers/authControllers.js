@@ -8,7 +8,7 @@ const bcrypt = require('bcryptjs');
 //==================================================================
 //Login user 
 //==================================================================
-// Function to check login
+// Query to check login and if user exist
 function checkLogin(username) {
     return new Promise((resolve, reject) => {
         const query = 'SELECT password, status FROM tms_users WHERE username = ?';

@@ -70,7 +70,7 @@ const CheckActive = (userid) => {
 //==================================================================
 //check if user is authenicated or not
 //==================================================================
-module.exports.isAuthenticatedUser = async(req, res, next) => {
+module.exports.isAuthenticatedUser = catchAsyncErrors(async(req, res, next) => {
     let token;
 
     if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
@@ -117,13 +117,13 @@ module.exports.isAuthenticatedUser = async(req, res, next) => {
             return next(new ErrorHandler('Invalid token. Please log in again.', 403));
         }
     }
-};
+});
 
 //==================================================================
 //handling user roles
 //==================================================================
 module.exports.authorizeGroups = (...groups) => {
-    return async(req, res, next) => {
+    return catchAsyncErrors(async(req, res, next) => {
         try {
             const results = await Promise.all(groups.map(group => Checkgroup(req.user.username, group)));
 
@@ -141,5 +141,5 @@ module.exports.authorizeGroups = (...groups) => {
             console.error("Error authorizing groups:", err);
             return next(new ErrorHandler(`Error authorizing groups: ${err.message}`, 500));
         }
-    }
+    })
 }

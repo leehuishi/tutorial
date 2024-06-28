@@ -96,6 +96,10 @@ function CreateUser({ onUserAdd, groupslist }){
                     draft.password.hasErrors = true
                     draft.password.message = "Password must be at least 8 characters."
                 }
+                if(!/(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d\s])/.test(draft.password.value)){
+                    draft.password.hasErrors = true
+                    draft.password.message = "Password must contain at least one letter, one number and one special character"
+                }
                 return
             case "submitForm":
                 if(!draft.username.hasErrors && draft.username.isUnique && !draft.email.hasErrors && !draft.password.hasErrors){

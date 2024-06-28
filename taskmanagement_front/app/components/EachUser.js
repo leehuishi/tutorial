@@ -78,6 +78,10 @@ function EachUser(props){
                     draft.password.hasErrors = true
                     draft.password.message = "Password must be at least 8 characters."
                 }
+                if(!/(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d\s])/.test(draft.password.value)){
+                    draft.password.hasErrors = true
+                    draft.password.message = "Password must contain at least one letter, one number and one special character"
+                }
                 return
             case "statusImmediately":
                 draft.status.value = action.value
