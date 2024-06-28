@@ -2,7 +2,6 @@ const express = require('express');
 const app = express();
 
 const dotenv = require('dotenv');
-const cookieParser = require('cookie-parser');
 const cors = require('cors');
 
 const errorMiddleware = require('./middlewares/errors');
@@ -17,9 +16,6 @@ dotenv.config({path: './config/config.env'});
 
 //set up body parser
 app.use(express.json());
-
-//set cookie parser
-app.use(cookieParser());
 
 //Set up CORS - Accessible by other domains
 app.use(cors());
