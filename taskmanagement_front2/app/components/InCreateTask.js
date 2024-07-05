@@ -523,7 +523,6 @@ function InCreateTask(){
                     {state.appdetails.app_description}
                 </div>
                 <br />
-                <TasksAll />
             </Page>
             
 
