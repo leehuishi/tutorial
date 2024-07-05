@@ -11,7 +11,7 @@ const {
 const { isAuthenticatedUser, authorizeGroups } = require('../middlewares/auth');
 
 router.route('/group/new').post(isAuthenticatedUser, authorizeGroups('admin'), createGroup);
-router.route('/group/all').get(isAuthenticatedUser, authorizeGroups('admin'), getAllGroup);
+router.route('/group/all').get(isAuthenticatedUser, authorizeGroups('admin', 'project lead'), getAllGroup);
 router.route('/group/:username').post(isAuthenticatedUser, authorizeGroups('admin'), updateGroupByUsername);
 router.route('/group/check/:groupname').get(isAuthenticatedUser, authorizeGroups('admin'), checkGroup);
 

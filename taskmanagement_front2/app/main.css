@@ -585,3 +585,147 @@ body {
       opacity: 1;
     }
   }
+
+
+  .card {
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    transition: background-color 0.3s ease;
+  }
+
+  .card:hover {
+    background-color: #f0f0f0; /* Grey background on hover */
+  }
+
+  .link-card {
+    /* Styles for the Link component inside card */
+    text-decoration: none; /* Remove default underline */
+    color: inherit; /* Inherit text color from parent */
+  }
+  
+  .card-title {
+    font-size: 1.5em;
+    font-weight: bolder;
+    margin-right: 5px;
+  }
+  
+  .card-content {
+    font-size: 1.2em;
+    color: #666;
+    flex: 1; /* Allow content to grow and take up remaining space */
+    margin-top: 2px;
+    max-height: calc(3em * 2); /* Limit the height to two lines of text */
+    line-height: 1.5; /* Adjust line height for readability */
+    overflow: hidden; /* Hide any content that overflows the specified height */
+    position: relative; /* Position relative for absolute positioning */
+  }
+
+  .card-content-long {
+    font-size: 1.2em;
+    color: #666;
+    flex: 1; /* Allow content to grow and take up remaining space */
+    margin-top: 2px;
+    max-height: calc(3em * 2); /* Limit the height to two lines of text */
+    line-height: 1.5; /* Adjust line height for readability */
+    overflow: hidden; /* Hide any content that overflows the specified height */
+    position: relative; /* Position relative for absolute positioning */
+  }
+
+  .card-content-long::after {
+    content: ''; /* Empty content for pseudo-element */
+    position: absolute; /* Position absolute for overlay */
+    bottom: 0; /* Align at the bottom */
+    right: 0; /* Align at the right */
+    width: 55px; /* Width of the ellipsis */
+    height: 1.5em; /* Height matching line height */
+  }
+
+  .app {
+    text-align: center;
+  }
+  
+  .card-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Three columns with equal width */
+    gap: 5px; /* Spacing between cards */
+    justify-content: center; /* Center cards horizontally */
+    padding-top: 10px; 
+    padding-left: 200px; 
+    padding-right: 200px; 
+  }
+
+  .row2 {
+    display: flex; /* Use flexbox to display items in a row */
+    align-items: flex-start; /* Align items vertically at the start */
+  }
+  
+  .inline-title {
+    margin-right: 10px; /* Add margin between title and content */
+  }
+
+  .board {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+  }
+  
+  .column {
+    width: 30%;
+    background-color: #f0f0f0;
+    padding: 20px;
+    border-radius: 5px;
+  }
+  
+  .task {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+  
+  button {
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    cursor: pointer;
+    border-radius: 3px;
+  }
+  
+  button:hover {
+    background-color: #45a049;
+  }
+
+
+  .table-container {
+    max-height: 400px; /* Example height; adjust as needed */
+    overflow-y: auto;
+  }
+
+  .table2 {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .table2 th, .table2 td {
+    padding: 8px;
+    border: 1px solid #ddd; /* Example border; adjust as needed */
+  }
+
+  .table2 th {
+    background-color: #f2f2f2; /* Example background color; adjust as needed */
+    text-align: left;
+  }

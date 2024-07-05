@@ -14,7 +14,6 @@ import Profile from "./components/Profile"
 import UserManage from "./components/UserManage"
 import HomePage from './components/HomePage'
 import InApplication from './components/InApplication'
-import InCreateTask from "./components/InCreateTask"
 import LoginPage from './components/LoginPage'
 import FlashMessages from "./components/FlashMessages"
 import FlashMessagesError from "./components/FlashMessagesError"
@@ -80,7 +79,7 @@ function Main() {
                         </Route>
 
                         <Route element={<ProtectedRoute isAuthenticated={state.loggedIn} />}>
-                            <Route element={<><InCreateTask /></>} path="/createtask/:appid" exact />
+                            <Route element={<><InAppPlan /></>} path="/plans/:appid" exact />
                         </Route>
 
                         <Route path="*" element={<><Header /><NotFound /></>} />

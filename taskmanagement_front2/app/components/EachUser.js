@@ -255,8 +255,10 @@ function EachUser(props){
     async function handleSubmit(e){
         e.preventDefault()
 
-        dispatch({type: "emailImmediately", value: state.email.value})
-        dispatch({type: "emailAfterDelay", value: state.email.value})
+        if(state.email.value !== ""){
+            dispatch({type: "emailImmediately", value: state.email.value})
+            dispatch({type: "emailAfterDelay", value: state.email.value})
+        }
 
         if(state.password.value !== ""){
             dispatch({type: "passwordImmediately", value: state.password.value})

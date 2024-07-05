@@ -575,16 +575,13 @@ module.exports.checkUser = catchAsyncErrors(async(req, res, next) => {
     }
 });
 
-//*******************************************************************************
-//*******************************************************************************
-//*******************************************************************************
 
 //==================================================================
 //check if user is project lead
 //==================================================================
 module.exports.getCheckIsPL = (req, res, next) => {
 
-    Checkgroup(req.user.username, 'project lead')
+    Checkgroup(req.user.username, 'project_lead')
     .then(result => {
         if(result){
             res.status(200).json({
@@ -607,3 +604,67 @@ module.exports.getCheckIsPL = (req, res, next) => {
         console.error('Error checking group:', err);
     });
 }
+
+
+//==================================================================
+//check if user is project manager
+//==================================================================
+module.exports.getCheckIsPM = (req, res, next) => {
+
+    Checkgroup(req.user.username, 'project_manager')
+    .then(result => {
+        if(result){
+            res.status(200).json({
+                success: true,
+                data: {
+                    isPM: true
+                }
+            });
+        }
+        else{
+            res.status(200).json({
+                success: true,
+                data: {
+                    isPM: false
+                }
+            });
+        }
+    })
+    .catch(err => {
+        console.error('Error checking group:', err);
+    });
+}
+
+
+//==================================================================
+//check if user is in group
+//==================================================================
+module.exports.getCheckIsGrp = (req, res, next) => {
+    Checkgroup(req.user.username, req.params.groupname)
+    .then(result => {
+        if(result){
+            res.status(200).json({
+                success: true,
+                data: {
+                    isInGrp: true
+                }
+            });
+        }
+        else{
+            res.status(200).json({
+                success: true,
+                data: {
+                    isInGrp: false
+                }
+            });
+        }
+    })
+    .catch(err => {
+        console.error('Error checking group:', err);
+    });
+}
+
+
+//*******************************************************************************
+//*******************************************************************************
+//*******************************************************************************

@@ -256,8 +256,10 @@ function CreateUser({ onUserAdd, groupslist }){
         dispatch({type: "usernameImmediately", value: state.username.value})
         dispatch({type: "usernameAfterDelay", value: state.username.value})
 
-        dispatch({type: "emailImmediately", value: state.email.value})
-        dispatch({type: "emailAfterDelay", value: state.email.value})
+        if(state.email.value != ""){
+            dispatch({type: "emailImmediately", value: state.email.value})
+            dispatch({type: "emailAfterDelay", value: state.email.value})
+        }
 
         dispatch({type: "passwordImmediately", value: state.password.value})
         dispatch({type: "passwordAfterDelay", value: state.password.value})
