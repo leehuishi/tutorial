@@ -4,144 +4,65 @@ import DispatchContext from "../DispatchContext"
 import { useImmerReducer } from 'use-immer'
 import axios from "axios"
 import Axiosinstance from "../../AxiosInstance"
-import { removeAuthTokenCookie } from "../RemoveCookieUtils"
 import { CSSTransition } from "react-transition-group";
-import { format } from 'date-fns';
-import Page from "./Page"
-import Header from "./Header"
 import Modal from 'react-modal';
-  
-function InCreateTask(){
+
+function InCreateTask({ isOpen2, closeModal2, appid2, app_permit_create2, onTaskAdd }){
     const appDispatch = useContext(DispatchContext)
-    let { appid } = useParams();
     const navigate = useNavigate();
 
     const initialState = {
-        appdetails: {
-            "app_acronym": "",
-            "app_description": "",
-            "app_rnumber": "",
-            "app_startdate": "",
-            "app_enddate": "",
-            "app_permit_create": "",
-            "app_permit_open": "",
-            "app_permit_todolist": "",
-            "app_permit_doing": "",
-            "app_permit_done": ""
-        },
-        ispm: false,
-        isgrp: {
-            group: "",
-            count: 0,
-            for: ""
-        },
-        app_permit_create: {
-            ingrp: false
-        },
-        modalIsOpen: false,
-        planname: {
+        taskname: {
             value: "",
             hasErrors: false,
             message: "",
-            isUnique: false,
-            checkCount: 0
         },
-        planstartdate: {
+        taskdesc: {
             value: "",
             hasErrors: false,
             message: ""
         },
-        planenddate: {
-            value: "",
-            hasErrors: false,
-            message: ""
+        taskplan: {
+            option: [],
+            value: ""
         },
-        plans: [],
         submitCount: 0
     }
 
     function ourReducer(draft, action){
         switch (action.type){
-            case "setAppDetails":
-                draft.appdetails = action.value
+            case "tasknameImmediately":
+                draft.taskname.hasErrors = false
+                draft.taskname.value = action.value
                 return
-            case "userIsPM":
-                draft.ispm = action.value
-                return
-            case "userIsInGrp":
-                if(draft.isgrp.for === "app_permit_create"){
-                    draft.app_permit_create.ingrp = action.value 
+            case "tasknameAfterDelay":
+                if(draft.taskname.value.length < 1){
+                    draft.taskname.hasErrors = true
+                    draft.taskname.message = "Task name is required"
                 }
                 return
-            case "triggerCheckGrp":
-                draft.isgrp.group = action.value
-                draft.isgrp.for = action.value2
-                draft.isgrp.count++
+            case "taskdescImmediately":
+                draft.taskdesc.hasErrors = false
+                draft.taskdesc.value = action.value
                 return
-            case "openModal":
-                draft.modalIsOpen = true
-                return
-            case "closeModal":
-                draft.modalIsOpen = false
-                return
-            case "plannameImmediately":
-                draft.planname.hasErrors = false
-                draft.planname.value = action.value
-                return
-            case "plannameAfterDelay":
-                if(!draft.planname.hasErrors){
-                    //no error
-                    draft.planname.checkCount++
-                }
-                return
-            case "plannameUniqueResult":
-                if(action.value){
-                    draft.planname.hasErrors = true
-                    draft.planname.isUnique = false
-                    draft.planname.message = "That plan name is already taken"
-                }
-                else{
-                    draft.planname.isUnique = true
-                }
-                return
-            case "planstartdateImmediately":
-                draft.planstartdate.hasErrors = false
-                draft.planstartdate.value = action.value
-                return
-            case "planstartdateAfterDelay":
-                if(!/^\d{4}-\d{2}-\d{2}$/.test(draft.planstartdate.value)){
-                    draft.planstartdate.hasErrors = true
-                    draft.planstartdate.message = "Please enter a valid date (dd/mm/yyyy)"
-                }
-                return
-            case "planenddateImmediately":
-                draft.planenddate.hasErrors = false
-                draft.planenddate.value = action.value
-                return
-            case "planenddateAfterDelay":
-                if(!/^\d{4}-\d{2}-\d{2}$/.test(draft.planenddate.value)){
-                    draft.planenddate.hasErrors = true
-                    draft.planenddate.message = "Please enter a valid date (dd/mm/yyyy)"
-                }
+            case "taskplanImmediately":
+                draft.taskplan.value = action.value
                 return
             case "submitForm":
-                if(!draft.planname.hasErrors && draft.planname.isUnique && !draft.planstartdate.hasErrors && !draft.planenddate.hasErrors){
+                if(!draft.taskname.hasErrors && !draft.taskdesc.hasErrors){
                     draft.submitCount++
                 }
                 else{
                     appDispatch({ type: "flashMessageError", value: "Invalid inputs"})
                 }
                 return
-            case "setPlans":
-                draft.plans = action.value
-                return
-            case "addPlan":
-                draft.plans.push(action.value);
-                return;
             case "resetValue":
-                draft.planname.value=""
-                draft.planstartdate.value=""
-                draft.planenddate.value=""
+                draft.taskname.value="";
+                draft.taskdesc.value="";
+                draft.taskplan.value="";
+                return
+            case "setPlanList":
+                draft.taskplan.option = action.value
                 return
             default:
                 return
@@ -151,166 +72,69 @@ function InCreateTask(){
     const [state, dispatch] = useImmerReducer(ourReducer, initialState)
 
     //=============================================================================
-    //app info
+    //=============================================================================
+
+    //=============================================================================
+    //check if user is in create grp
     //=============================================================================
     useEffect(() => {
         async function fetchData() {
-            try{
-                const url = "/app/" + appid;
-                const response = await Axiosinstance.get(url);
-
-                if(response.data.success){
-                    const data = response.data.data
-                    dispatch({type: "setAppDetails", value: data})
-                }
-                
-            }
-            catch(e){
-                if(e.response.status === 403){
-                    appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
-                    removeAuthTokenCookie()
-                    navigate('/');
-                }
-                else{
-                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
-                }
-            }
-        }
-        fetchData()
-    }, [])
-    //=============================================================================
-    //=============================================================================
-
-
-    //=============================================================================
-    //check if user is in group
-    //=============================================================================
-    useEffect(() => {
-        async function fetchData() {
-            try{
-                const response = await Axiosinstance.get("/user/ispm")
-
-                if(response.data.success){
-                    const data = response.data.data
-                    if(data.isPM){
-                        dispatch({type: "userIsPM", value: data.isPM})
-                    }
-
-                    dispatch({type: "triggerCheckGrp", value: state.appdetails.app_permit_create, value2: "app_permit_create"})
-                }
-                
-            }
-            catch(e){
-                if(e.response.status === 403){
-                    appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
-                    removeAuthTokenCookie()
-                    navigate('/');
-                }
-                else{
-                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
-                }
-            }
-        }
-        fetchData()
-    }, [state.appdetails])
-    //=============================================================================
-    //=============================================================================
-
-
-    //=============================================================================
-    //check if user is project lead
-    //=============================================================================
-    useEffect(() => {
-        async function fetchData() {
-            try{
-                const response = await Axiosinstance.get("/user/ispm")
-
-                if(response.data.success){
-                    const data = response.data.data
-                    if(data.isPM){
-                        dispatch({type: "userIsPM", value: data.isPM})
-                    }
-                }
-                
-            }
-            catch(e){
-                if(e.response.status === 403){
-                    appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
-                    removeAuthTokenCookie()
-                    navigate('/');
-                }
-                else{
-                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
-                }
-            }
-        }
-        fetchData()
-    }, [])
-    //=============================================================================
-    //=============================================================================
-
-    //=============================================================================
-    //check if user is in particular group
-    //=============================================================================
-    useEffect(() => {
-        async function fetchData() {
-            if(state.isgrp.count > 0 && state.isgrp.group !== ""){
+            if(isOpen2){
                 try{
-                    const url2 = "/user/checkinggrp/" + state.isgrp.group
+                    const url2 = "/user/checkinggrp/" + app_permit_create2
                     const response = await Axiosinstance.get(url2)
 
                     if(response.data.success){
                         const data = response.data.data
-                        if(data.isInGrp){
-                            dispatch({type: "userIsInGrp", value: data.isInGrp})
+                        if(!data.isInGrp){
+                            appDispatch({ type: "flashMessageError", value: "Update in access rights."})
+                            navigate('/home');
                         }
                     }
-                    
                 }
                 catch(e){
-                    if(e.response.status === 403){
-                        appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
-                        removeAuthTokenCookie()
-                        navigate('/');
-                    }
-                    else{
-                        appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
-                    }
+                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
                 }
             }
         }
         fetchData()
-    }, [state.isgrp.count])
+    }, [isOpen2])
     //=============================================================================
     //=============================================================================
+
 
     //=============================================================================
     //delay check
     //=============================================================================
-    //delay check for planname (to make sure user finish typing)
+    //delay check for appname (to make sure user finish typing)
     useEffect(() => {
-        if(state.planname.value){
-            const delay = setTimeout(() => dispatch({type: "plannameAfterDelay"}), 800)
+        if(state.taskname.value){
+            const delay = setTimeout(() => dispatch({type: "tasknameAfterDelay"}), 800)
             return () => clearTimeout(delay)
         }
-    }, [state.planname.value])
-
-    //delay check for planstartdate (to make sure user finish typing)
-    useEffect(() => {
-        if(state.planstartdate.value){
-            const delay = setTimeout(() => dispatch({type: "planstartdateAfterDelay"}), 1000)
-            return () => clearTimeout(delay)
-        }
-    }, [state.planstartdate.value])
-
-    //delay check for planenddate (to make sure user finish typing)
-    useEffect(() => {
-        if(state.planenddate.value){
-            const delay = setTimeout(() => dispatch({type: "planenddateAfterDelay"}), 1000)
-            return () => clearTimeout(delay)
-        }
-    }, [state.planenddate.value])
+    }, [state.taskname.value])
     
+    //=============================================================================
+    //=============================================================================
+
+
+    //=============================================================================
+    //for modal
+    //=============================================================================
+    const customStyles = {
+        content: {
+            top: '40%',
+            left: '50%',
+            right: 'auto',
+            bottom: 'auto',
+            width: '80%',
+            marginRight: '-50%',
+            transform: 'translate(-50%, -50%)',
+            maxHeight: '90vh', // Adjust as needed
+            overflowY: 'auto'
+        },
+    };
+
     //=============================================================================
     //=============================================================================
 
@@ -319,22 +143,19 @@ function InCreateTask(){
     //=============================================================================
     useEffect(() => {
         async function fetchData() {
-            if(state.modalIsOpen){
+            if(isOpen2){
                 try{
-
-                    const url5 = "/plan/all/" + state.appdetails.app_acronym
+                    const url5 = "/plan/all/" + appid2
                     const response = await Axiosinstance.get(url5)
-    
                     if(response.data.success){
                         const data = response.data.data
-                        dispatch({type: "setPlans", value: data})
+                        dispatch({type: "setPlanList", value: data})
                     }
                 }
                 catch(e){
                     if(e.response.status === 403){
-                        appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
-                        removeAuthTokenCookie()
-                        navigate('/');
+                        appDispatch({ type: "flashMessageError", value: "Update in access rights."})
+                        navigate('/home');
                     }
                     else{
                         appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
@@ -343,70 +164,13 @@ function InCreateTask(){
             }
         }
         fetchData()
-    }, [state.modalIsOpen])
+    }, [isOpen2])
     //=============================================================================
     //=============================================================================
 
 
     //=============================================================================
-    //check if plan exist
-    //=============================================================================
-    //check if planname exist
-    useEffect(() => {
-        if(state.planname.checkCount){
-            async function fetchResults(){
-                try{
-                    const url = "/plan/check?planname=" + state.planname.value +  "&appname=" + state.appdetails.app_acronym
-                    const response = await Axiosinstance.get(url)
-
-                    if(response.data.success){
-                        const data = response.data.data
-                        dispatch({type: "plannameUniqueResult", value: data.planexist})
-                    }
-                }
-                catch(e){
-                    if(e.response.status === 403){
-                        appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
-                        navigate('/home');
-                    }
-                    else{
-                        console.log("There was a problem or the request was cancelled")
-                        appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
-                    }
-                }
-
-            }
-            fetchResults()
-        }
-    }, [state.planname.checkCount])
-    //-----------------------------------------------
-
-    //=============================================================================
-    //=============================================================================
-
-    //=============================================================================
-    //for modal
-    //=============================================================================
-    const customStyles = {
-        content: {
-            top: '45%',
-            left: '50%',
-            right: 'auto',
-            bottom: 'auto',
-            width: '50%',
-            marginRight: '-50%',
-            transform: 'translate(-50%, -50%)',
-            maxHeight: '80vh', // Adjust as needed
-            overflowY: 'auto'
-        },
-    };
-
-    //=============================================================================
-    //=============================================================================
-
-
-    //=============================================================================
-    //submit create plan
+    //submit create task
     //=============================================================================
     useEffect(() => {
         if(state.submitCount){
@@ -416,31 +180,29 @@ function InCreateTask(){
             async function fetchResults(){
                 try{
                     const bodydata = {
-                        "planname": state.planname.value,
-                        "planstartdate": state.planstartdate.value,
-                        "planenddate": state.planenddate.value,
+                        "task_name": state.taskname.value,
+                        "task_desc": state.taskdesc.value,
+                        "task_plan": state.taskplan.value,
+                        "task_app_acronym": appid2
                     }
                     
-                    const url4 = 'plan/new/' + state.appdetails.app_acronym;
 
                     //submit request 
-                    await Axiosinstance.post(url4, bodydata) //create plan
-                    console.log("Plan was successfully created.")
+                    const response = await Axiosinstance.post('/task/new/', bodydata) //create plan
+                    console.log("Task was successfully created.")
 
-                    appDispatch({ type: "flashMessage", value: "App created successfully"})
+                    appDispatch({ type: "flashMessage", value: "Task created successfully"})
 
-                    const newPlan = {
-                        "planname": state.planname.value,
-                        "planstartdate": state.planstartdate.value,
-                        "planenddate": state.planenddate.value,
-                    }
-                    
-                    dispatch({type: "addPlan", value: newPlan})
+                    const new_task = response.data.data;
+
+                    onTaskAdd(new_task);
+
                     dispatch({type: "resetValue"})
+                    closeModal2();
                 }
                 catch(e){
                     if(e.response.status === 403){
-                        appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
+                        appDispatch({ type: "flashMessageError", value: "Update in access rights."})
                         navigate('/home');
                     }
                     else{
@@ -460,26 +222,14 @@ function InCreateTask(){
     //=============================================================================
 
 
-    //=============================================================================
-    async function onClickCreateTask(e){
-        e.preventDefault();
-        var url3 = '/createtask/' + state.appdetails.app_acronym
-        navigate(url3);
-    }
 
-    //=============================================================================
 
     //=============================================================================
     async function handleSubmit(e){
         e.preventDefault()
-        dispatch({type: "plannameImmediately", value: state.planname.value})
-        dispatch({type: "plannameAfterDelay", value: state.planname.value})
-
-        dispatch({type: "planstartdateImmediately", value: state.planstartdate.value})
-        dispatch({type: "planstartdateAfterDelay", value: state.planstartdate.value})
-
-        dispatch({type: "planenddateImmediately", value: state.planenddate.value})
-        dispatch({type: "planenddateAfterDelay", value: state.planenddate.value})
+        dispatch({type: "tasknameImmediately", value: state.taskname.value})
+        dispatch({type: "taskdescImmediately", value: state.taskdesc.value})
+        dispatch({type: "taskplanImmediately", value: state.taskplan.value})
 
         dispatch({type: "submitForm"})
     }
@@ -487,119 +237,95 @@ function InCreateTask(){
     //=============================================================================
 
     return (
-        <>
-            <Header />
-            <Page title="Application" wide={true} top={true}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px' }}>
-                    <div style={{ flex: '1' }}>
-                        {/* Placeholder for left side content */}
-                    </div>
-
-                    <h1 style={{ textAlign: 'center', flex: '1' }}>{appid}<span style={{paddingRight: "20px"}}></span>{state.appdetails.app_rnumber}</h1>
-                    
-                    {/* Conditionally render User Management button */}
-                    <div style={{ flex: '1', textAlign: 'right' }}>
-                        {state.app_permit_create.ingrp ?
-                            <button onClick={onClickCreateTask} style={{marginRight: "10px"}} className="btn btn-secondary">
-                                Create Task
-                            </button>
-                            : 
-                            <></>
-                        }
-
-                        {state.ispm ?
-                            
-                                <button onClick={() => dispatch({type: "openModal"})} className="btn btn-secondary">
-                                    Plans
-                                </button>
-                            : 
-                            <></>
-                        }
-                    </div>
-
-                </div>
-                <br />
-                <div style={{ textAlign: 'center' }}>
-                    {state.appdetails.app_description}
-                </div>
-                <br />
-            </Page>
+        <Modal isOpen={isOpen2} onRequestClose={closeModal2} style={customStyles} contentLabel="Create Task Modal" ariaHideApp={false}>   
+            <div style={{ textAlign: 'right' }}>
+                <button className="btn btn-secondary" onClick={closeModal2}>x</button>
+            </div>
             
+            <h1 style={{ textAlign: 'center', paddingBottom: '20px'}}>Create Task</h1>
+            <hr />
 
-            <Modal isOpen={state.modalIsOpen} onRequestClose={() => dispatch({type: "closeModal"})} style={customStyles} contentLabel="Plan Modal" ariaHideApp={false}>   
-                <div style={{ textAlign: 'right' }}>
-                    <button className="btn btn-secondary" onClick={() => dispatch({type: "closeModal"})}>x</button>
-                </div>
-                
-                <h1 style={{ textAlign: 'center', paddingBottom: '20px'}}>Plans</h1>
+            <div className="table-container">
+                <table width="100%">
+                    <tbody>
+                        <tr>
+                            <td width="30%" style={{ borderRight: "1px solid" }}>
+                                <form onSubmit={handleSubmit} style={{marginRight: "10px"}}>
+                                    
+                                    <div className="form-group row" style={{marginRight:"10px"}}>
+                                        <label htmlFor="taskid_create" className="col-sm-3 col-form-label">ID:</label>
 
-                <div className="table-container">
-                    <table className="table table2 table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Plan Name</th>
-                                <th>Start</th>
-                                <th>End</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        {state.plans.map((plan, index) => (
-                            <tr>
-                                <td>{plan.planname}</td>
-                                <td>{formattedDate(plan.planstartdate)}</td>
-                                <td>{formattedDate(plan.planenddate)}</td>
-                            </tr>
-                        ))}
-                        </tbody>
-                    </table>
-                </div>
-                
-
-                <form onSubmit={handleSubmit}>
-                    <div className="form-group row">
-                        <label htmlFor="planname_create" className="col-sm-3 col-form-label">Plan Name:</label>
-
-                        <div className="col-sm-5">
-                            <input onChange={e => dispatch({type: "plannameImmediately", value: e.target.value})} value={state.planname.value} id="planname_create" name="planname" className="form-control" type="text" autoComplete="off" placeholder="Enter plan name" />
-                            <CSSTransition style={{marginTop: "10px"}} in={state.planname.hasErrors} timeout={330} classNames="alert" unmountOnExit>
-                                <div className="alert alert-danger small">{state.planname.message}</div>
-                            </CSSTransition>
-                        </div>
-                    </div>
-
-                    <div className="form-group row">
-                        <label htmlFor="planstartdate_create" className="col-sm-3 col-form-label">Plan Start Date:</label>
-                        
-                        <div className="col-sm-5">
-                            <input onChange={e => dispatch({type: "planstartdateImmediately", value: e.target.value})} value={state.planstartdate.value} id="planstartdate_create" name="planstartdate" className="form-control" type="date" />
-                            <CSSTransition style={{marginTop: "10px"}} in={state.planstartdate.hasErrors} timeout={330} classNames="alert" unmountOnExit>
-                                <div className="alert alert-danger small">{state.planstartdate.message}</div>
-                            </CSSTransition>
-                        </div>
-                    </div>
+                                        <div className="col-sm-7">
+                                            <input id="taskid_create" name="taskid" className="form-control" type="text" autoComplete="off" placeholder="AUTO GENERATED" readOnly />
+                                        </div>
+                                    </div>
 
 
-                    <div className="form-group row">
-                        <label htmlFor="planenddate_create" className="col-sm-3 col-form-label">Plan End Date:</label>
-                        
-                        <div className="col-sm-5">
-                            <input onChange={e => dispatch({type: "planenddateImmediately", value: e.target.value})} value={state.planenddate.value} id="planenddate_create" name="planenddate" className="form-control" type="date" />
-                            <CSSTransition style={{marginTop: "10px"}} in={state.planenddate.hasErrors} timeout={330} classNames="alert" unmountOnExit>
-                                <div className="alert alert-danger small">{state.planenddate.message}</div>
-                            </CSSTransition>
-                        </div>
-                    </div>
+                                    <div className="form-group row" style={{marginRight:"10px"}}>
+                                        <label htmlFor="taskowner_create" className="col-sm-3 col-form-label">Owner:</label>
+
+                                        <div className="col-sm-7">
+                                            <input id="taskowner_create" name="taskowner" className="form-control" type="text" autoComplete="off" placeholder="AUTO GENERATED" readOnly />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-group row" style={{marginRight:"10px"}}>
+                                        <label htmlFor="taskname_create" className="col-sm-3 col-form-label">Name:</label>
+
+                                        <div className="col-sm-7">
+                                            <textarea onChange={e => dispatch({type: "tasknameImmediately", value: e.target.value})} value={state.taskname.value} id="taskname_create" name="taskname" className="form-control" autoComplete="off" rows="2">Enter task name.</textarea>
+                                            <CSSTransition style={{marginTop: "10px"}} in={state.taskname.hasErrors} timeout={330} classNames="alert" unmountOnExit>
+                                                <div className="alert alert-danger small">{state.taskname.message}</div>
+                                            </CSSTransition>
+                                        </div>
+                                    </div>
+
+                                    <div className="form-group row" style={{marginRight:"10px"}}>
+                                        <label htmlFor="taskdesc_create" className="col-sm-3 col-form-label">Description:</label>
+
+                                        <div className="col-sm-7">
+                                            <textarea onChange={e => dispatch({type: "taskdescImmediately", value: e.target.value})} value={state.taskdesc.value} id="taskdesc_create" name="taskdesc" className="form-control" autoComplete="off" rows="2">Enter task description.</textarea>
+                                            
+                                        </div>
+                                    </div>
+
+                                    <div className="form-group row" style={{marginRight:"10px"}}>
+                                        <label htmlFor="taskdesc_create" className="col-sm-3 col-form-label">Plan:</label>
+
+                                        <div className="col-sm-7">
+                                        {state.taskplan.option.length > 0 ? 
+                                                (
+                                                    <select id="taskplan_create" value={state.taskplan.value} onChange={e => dispatch({type: "taskplanImmediately", value: e.target.value})} className="form-control" name="taskplan">
+                                                        <option value="">Select...</option>
+                                                        {state.taskplan.option.map((option, index) => (<option key={option.planname} value={option.planname}>{option.planname}</option>))}
+                                                    </select>
+                                                ) 
+                                                : 
+                                                (
+                                                    <p className="form-control">No options available.</p>
+                                                ) 
+                                            }
+                                        </div>
+                                    </div>
 
 
-                    <div className="form-group row">
-                        <div className="col-sm-10 offset-sm-2 text-right">
-                            <button type="submit" className="btn btn-success">Submit</button>
-                        </div>
-                    </div>
+                                    <div className="form-group row">
+                                        <div className="col-sm-10 offset-sm-2 text-right">
+                                            <button type="submit" className="btn btn-success">Submit</button>
+                                        </div>
+                                    </div>
 
-                </form>
-            </Modal>
-        </>
+                                </form>
+                            </td>
+
+                            <td width="50%">
+
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </Modal>
     )
 }
 

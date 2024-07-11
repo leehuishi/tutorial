@@ -670,7 +670,8 @@ body {
   .board {
     display: flex;
     justify-content: space-around;
-    margin-top: 20px;
+    margin-right: 20px;
+    margin-left: 20px;
   }
   
   .column {
@@ -728,4 +729,24 @@ body {
   .table2 th {
     background-color: #f2f2f2; /* Example background color; adjust as needed */
     text-align: left;
+  }
+
+  #container {
+    width: 80%;
+    aspect-ratio: 3/1;
+    padding: 20px 0;
+    margin: auto;
+    border: solid black 2px;
+    overflow: auto;
+    overflow-wrap: break-word; /* Enable text wrapping */
+  }
+
+  #container2 {
+    width: 80%;
+    padding: 20px 0;
+    margin-left: 10%;
+  }
+  
+  pre {
+    white-space: pre-line;
   }

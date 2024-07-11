@@ -31,12 +31,14 @@ const user = require('./routes/user');
 const group = require('./routes/group');
 const application = require('./routes/application');
 const plan = require('./routes/plan');
+const task = require('./routes/task');
 
 app.use(auth);
 app.use(user);
 app.use(group);
 app.use(application);
 app.use(plan);
+app.use(task);
 
 //manage unhandle route - part 2 (put it after all the routes !!!!! e.g. of routes = app.use(jobs);)
 app.all('*', (req, res, next) => {

@@ -2,23 +2,16 @@ import React, { useEffect, useContext } from "react"
 import { useNavigate,useParams } from "react-router-dom"
 import DispatchContext from "../DispatchContext"
 import { useImmerReducer } from 'use-immer'
-import axios from "axios"
 import Axiosinstance from "../../AxiosInstance"
-import { removeAuthTokenCookie } from "../RemoveCookieUtils"
-import { CSSTransition } from "react-transition-group";
-import { format } from 'date-fns';
 import Page from "./Page"
 import Header from "./Header"
-import Modal from 'react-modal';
 import TasksAll from "./TasksAll";
-import InAppPlan from "./InAppPlan"
+import InAppPlan from "./InAppPlan";
+import InCreateTask from "./InCreateTask"
   
 function InApplication(){
     const appDispatch = useContext(DispatchContext)
     let { appid } = useParams();
-    const navigate = useNavigate();
-
-    
 
     const initialState = {
         appdetails: {
@@ -42,7 +35,11 @@ function InApplication(){
         app_permit_create: {
             ingrp: false
         },
-        modalIsOpen: false
+        modalIsOpen: false,
+        modalIsOpen2: false,
+        tasklist: [],
+        changeintasklist: 0,
+        addintasklist:0
     }
 
     function ourReducer(draft, action){
@@ -65,9 +62,27 @@ function InApplication(){
                 return
             case "openModal":
                 draft.modalIsOpen = true
+                draft.modalIsOpen2 = false
                 return
             case "closeModal":
                 draft.modalIsOpen = false
+                return
+            case "openModal2":
+                draft.modalIsOpen2 = true
+                draft.modalIsOpen = false
+                return
+            case "closeModal2":
+                draft.modalIsOpen2 = false
+                return
+            case "setTasklist":
+                draft.tasklist = action.value
+                return
+            case "addTask":
+                draft.tasklist.push(action.value);
+                draft.addintasklist++
+                return;
+            case "ChangeTasklist":
+                draft.changeintasklist++
                 return
             default:
                 return
@@ -92,18 +107,11 @@ function InApplication(){
                 
             }
             catch(e){
-                if(e.response.status === 403){
-                    appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
-                    removeAuthTokenCookie()
-                    navigate('/');
-                }
-                else{
-                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
-                }
+                appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
             }
         }
         fetchData()
-    }, [])
+    }, [state.addintasklist])
     //=============================================================================
     //=============================================================================
 
@@ -127,56 +135,17 @@ function InApplication(){
                 
             }
             catch(e){
-                if(e.response.status === 403){
-                    appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
-                    removeAuthTokenCookie()
-                    navigate('/');
-                }
-                else{
-                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
-                }
+                appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
             }
         }
         fetchData()
     }, [state.appdetails])
     //=============================================================================
     //=============================================================================
-
-
-    //=============================================================================
-    //check if user is project lead
-    //=============================================================================
-    useEffect(() => {
-        async function fetchData() {
-            try{
-                const response = await Axiosinstance.get("/user/ispm")
-
-                if(response.data.success){
-                    const data = response.data.data
-                    if(data.isPM){
-                        dispatch({type: "userIsPM", value: data.isPM})
-                    }
-                }
-                
-            }
-            catch(e){
-                if(e.response.status === 403){
-                    appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
-                    removeAuthTokenCookie()
-                    navigate('/');
-                }
-                else{
-                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
-                }
-            }
-        }
-        fetchData()
-    }, [])
-    //=============================================================================
-    //=============================================================================
+    
 
     //=============================================================================
-    //check if user is in particular group
+    //check if user is in create grp
     //=============================================================================
     useEffect(() => {
         async function fetchData() {
@@ -191,17 +160,9 @@ function InApplication(){
                             dispatch({type: "userIsInGrp", value: data.isInGrp})
                         }
                     }
-                    
                 }
                 catch(e){
-                    if(e.response.status === 403){
-                        appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
-                        removeAuthTokenCookie()
-                        navigate('/');
-                    }
-                    else{
-                        appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
-                    }
+                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
                 }
             }
         }
@@ -210,14 +171,28 @@ function InApplication(){
     //=============================================================================
     //=============================================================================
 
-
     //=============================================================================
-    async function onClickCreateTask(e){
-        e.preventDefault();
-        var url3 = '/createtask/' + state.appdetails.app_acronym
-        navigate(url3);
-    }
+    //retrieve all tasks
+    //=============================================================================
+    useEffect(() => {
+        async function fetchTask() {
+            try{
+                const url1 = "/task/all/" + appid
+                const response = await Axiosinstance.get(url1)
 
+                if(response.data.success){
+                    const data = response.data.data
+                    dispatch({type: "setTasklist", value: data})
+                }
+                
+            }
+            catch(e){
+                appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+            }
+        }
+        fetchTask()
+    }, [state.changeintasklist])
+    //=============================================================================
     //=============================================================================
 
     return (
@@ -234,7 +209,7 @@ function InApplication(){
                     {/* Conditionally render User Management button */}
                     <div style={{ flex: '1', textAlign: 'right' }}>
                         {state.app_permit_create.ingrp ?
-                            <button onClick={onClickCreateTask} style={{marginRight: "10px"}} className="btn btn-secondary">
+                            <button onClick={() => dispatch({type: "openModal2"})} style={{marginRight: "10px"}} className="btn btn-secondary">
                                 Create Task
                             </button>
                             : 
@@ -257,10 +232,11 @@ function InApplication(){
                     {state.appdetails.app_description}
                 </div>
                 <br />
-                <TasksAll />
+                
             </Page>
-
-            <InAppPlan isOpen={state.modalIsOpen} closeModal={() => dispatch({ type: 'closeModal' })} appid={appid} modalIsOpen={state.modalIsOpen} />
+            <TasksAll tasks={state.tasklist} appdetails={ state.appdetails } onTaskEdit={() => dispatch({ type: "ChangeTasklist" })} />
+            <InAppPlan isOpen={state.modalIsOpen} closeModal={() => dispatch({ type: 'closeModal' })} appid={appid} />
+            <InCreateTask isOpen2={state.modalIsOpen2} closeModal2={() => dispatch({ type: 'closeModal2' })} appid2={appid} app_permit_create2={state.appdetails.app_permit_create} onTaskAdd={(newTask) => dispatch({ type: "addTask", value: newTask })} />
         </>
     )
 }

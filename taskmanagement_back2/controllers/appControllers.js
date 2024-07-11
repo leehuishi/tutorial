@@ -222,25 +222,40 @@ module.exports.updateApp = catchAsyncErrors (async (req, res, next) => {
         updatedata.push(app.appcreate);
         pre_query1 = pre_query1 + ', app_permit_create = ?';
     }
+    else{
+        pre_query1 = pre_query1 + ', app_permit_create = null';
+    }
 
     if(app.appopen != ""){
         updatedata.push(app.appopen)
         pre_query1 = pre_query1 + ', app_permit_open = ?';
+    }
+    else{
+        pre_query1 = pre_query1 + ', app_permit_open = null';
     }
 
     if(app.apptodo != ""){
         updatedata.push(app.apptodo)
         pre_query1 = pre_query1 + ', app_permit_todolist = ?';
     }
+    else{
+        pre_query1 = pre_query1 + ', app_permit_todolist = null';
+    }
 
     if(app.appdoing != ""){
         updatedata.push(app.appdoing)
         pre_query1 = pre_query1 + ', app_permit_doing = ?';
     }
+    else{
+        pre_query1 = pre_query1 + ', app_permit_doing = null';
+    }
 
     if(app.appdone != ""){
         updatedata.push(app.appdone)
         pre_query1 = pre_query1 + ', app_permit_done = ?';
+    }
+    else{
+        pre_query1 = pre_query1 + ', app_permit_done = null';
     }
 
     const query = pre_query1 + pre_query2;

@@ -240,14 +240,7 @@ const Card = ({ app }) => {
                 
             }
             catch(e){
-                if(e.response.status === 403){
-                    appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
-                    removeAuthTokenCookie()
-                    navigate('/');
-                }
-                else{
-                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
-                }
+                appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
             }
         }
         fetchData()
@@ -316,7 +309,7 @@ const Card = ({ app }) => {
                 }
                 catch(e){
                     if(e.response.status === 403){
-                        appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
+                        appDispatch({ type: "flashMessageError", value: "Update in access rights. Please kindly login again."})
                         removeAuthTokenCookie()
                         navigate('/');
                     }
@@ -365,8 +358,9 @@ const Card = ({ app }) => {
                 }
                 catch(e){
                     if(e.response.status === 403){
-                        appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
-                        navigate('/home');
+                        appDispatch({ type: "flashMessageError", value: "Update not successful. Update in access rights. Please kindly login again."})
+                        removeAuthTokenCookie()
+                        navigate('/');
                     }
                     else{
                         console.log("There was a problem or the request was cancelled")

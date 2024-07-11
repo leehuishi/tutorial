@@ -79,10 +79,6 @@ function Main() {
                             <Route element={<><InApplication /></>} path="/app/:appid" exact />
                         </Route>
 
-                        <Route element={<ProtectedRoute isAuthenticated={state.loggedIn} />}>
-                            <Route element={<><InCreateTask /></>} path="/createtask/:appid" exact />
-                        </Route>
-
                         <Route path="*" element={<><Header /><NotFound /></>} />
                     </Routes>
 

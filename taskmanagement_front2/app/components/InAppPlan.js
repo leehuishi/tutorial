@@ -9,7 +9,7 @@ import { CSSTransition } from "react-transition-group";
 import { format } from 'date-fns';
 import Modal from 'react-modal';
 
-function InAppPlan({ isOpen, closeModal, appid, modalIsOpen }){
+function InAppPlan({ isOpen, closeModal, appid }){
     const appDispatch = useContext(DispatchContext)
     const navigate = useNavigate();
 
@@ -145,30 +145,29 @@ function InAppPlan({ isOpen, closeModal, appid, modalIsOpen }){
     //=============================================================================
     useEffect(() => {
         async function fetchData() {
-            try{
-                const response = await Axiosinstance.get("/user/ispm")
-
-                if(response.data.success){
-                    const data = response.data.data
-                    if(data.isPM){
-                        dispatch({type: "userIsPM", value: data.isPM})
+            if(isOpen){
+                try{
+                    const response = await Axiosinstance.get("/user/ispm")
+    
+                    if(response.data.success){
+                        const data = response.data.data
+                        if(data.isPM){
+                            dispatch({type: "userIsPM", value: data.isPM})
+                        }
+                        else{
+                            appDispatch({ type: "flashMessageError", value: "Update in access rights."})
+                            navigate('/home');
+                        }
                     }
+                    
                 }
-                
-            }
-            catch(e){
-                if(e.response.status === 403){
-                    appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
-                    removeAuthTokenCookie()
-                    navigate('/app/' + appid);
-                }
-                else{
+                catch(e){
                     appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
                 }
             }
         }
         fetchData()
-    }, [])
+    }, [isOpen])
     //=============================================================================
     //=============================================================================
 
@@ -208,29 +207,28 @@ function InAppPlan({ isOpen, closeModal, appid, modalIsOpen }){
     //=============================================================================
     useEffect(() => {
         async function fetchData() {
-            try{
-
-                const url5 = "/plan/all/" + appid
-                const response = await Axiosinstance.get(url5)
-                console.log(response)
-                if(response.data.success){
-                    const data = response.data.data
-                    dispatch({type: "setPlans", value: data})
+            if(isOpen){
+                try{
+                    const url5 = "/plan/all/" + appid
+                    const response = await Axiosinstance.get(url5)
+                    if(response.data.success){
+                        const data = response.data.data
+                        dispatch({type: "setPlans", value: data})
+                    }
                 }
-            }
-            catch(e){
-                if(e.response.status === 403){
-                    appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
-                    removeAuthTokenCookie()
-                    navigate('/');
-                }
-                else{
-                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+                catch(e){
+                    if(e.response.status === 403){
+                        appDispatch({ type: "flashMessageError", value: "Update in access rights."})
+                        navigate('/home');
+                    }
+                    else{
+                        appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+                    }
                 }
             }
         }
         fetchData()
-    }, [])
+    }, [isOpen])
     //=============================================================================
     //=============================================================================
 
@@ -253,7 +251,7 @@ function InAppPlan({ isOpen, closeModal, appid, modalIsOpen }){
                 }
                 catch(e){
                     if(e.response.status === 403){
-                        appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
+                        appDispatch({ type: "flashMessageError", value: "Update in access rights."})
                         navigate('/home');
                     }
                     else{
@@ -306,7 +304,7 @@ function InAppPlan({ isOpen, closeModal, appid, modalIsOpen }){
                 }
                 catch(e){
                     if(e.response.status === 403){
-                        appDispatch({ type: "flashMessageError", value: "User you no longer have access. Please approach your admin for more information."})
+                        appDispatch({ type: "flashMessageError", value: "Plan not created. Update in access rights."})
                         navigate('/home');
                     }
                     else{
