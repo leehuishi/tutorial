@@ -100,7 +100,14 @@ const TaskCardDoing = ({ task, permit_group, appid, onTaskEdit }) => {
                     
                 }
                 catch(e){
-                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+                    if(e.response.status === 403){
+                        appDispatch({ type: "flashMessageError", value: "Update in access rights."})
+                        navigate('/home');
+                    }
+                    else{
+                        console.log("There was a problem or the request was cancelled")
+                        appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+                    }
                 }
             }
         }

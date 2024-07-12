@@ -4,9 +4,11 @@ import Axiosinstance from "../../AxiosInstance"
 import DispatchContext from "../DispatchContext"
 import Modal from 'react-modal';
 import NotesArea2 from './NotesArea2';
+import { useNavigate } from "react-router-dom"
 
 const TaskCardClosed = ({ task }) => {
     const appDispatch = useContext(DispatchContext)
+    const navigate = useNavigate()
 
     const truncateLongtext = (rawtext, maxLength) => {
         if (rawtext.length > maxLength) {
@@ -77,7 +79,14 @@ const TaskCardClosed = ({ task }) => {
                     }
                 }
                 catch(e){
-                    appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+                    if(e.response.status === 403){
+                        appDispatch({ type: "flashMessageError", value: "Update in access rights."})
+                        navigate('/home');
+                    }
+                    else{
+                        console.log("There was a problem or the request was cancelled")
+                        appDispatch({ type: "flashMessageError", value: "We are currently having some technical issue. Please try again later."})
+                    }
                 }
             }
         }
