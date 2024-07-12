@@ -4,6 +4,9 @@ const ErrorHandler = require('../utils/errorHandler');
 const { Checkgroup } = require('../middlewares/auth');
 const nodemailer = require('nodemailer');
 
+//==================================================================
+//Get current date and time
+//==================================================================
 function getCurrentDateTimeFormatted() {
     const currentDate = new Date();
     
@@ -21,12 +24,12 @@ function getCurrentDateTimeFormatted() {
 
     return formattedDateTime;
 }
-
 //==================================================================
-//Check if user is in the grp that has permit
 //==================================================================
 
-// Query to select group with permission
+//==================================================================
+//Get Permitted Group by state and app_acronym
+//==================================================================
 function checkGrpWithPerm(appid, type) {
     const query = 'SELECT ?? FROM app WHERE app_acronym = ?';
 
@@ -46,7 +49,13 @@ function checkGrpWithPerm(appid, type) {
         });
     });
 }
+//==================================================================
+//==================================================================
 
+
+//==================================================================
+//Check if user is in permitted group
+//==================================================================
 async function checkGrp (username, appid, type) {
     try {
         const grp_with_permit = await checkGrpWithPerm(appid, type);
@@ -66,185 +75,13 @@ async function checkGrp (username, appid, type) {
     }
 }
 
-
+//==================================================================
+//==================================================================
 
 
 //==================================================================
-//create new task
+//Get appid with task_id
 //==================================================================
-// Query to retrieve latest rnum
-function getAppRNum(appid) {
-    const query = 'SELECT app_rnumber from app where app_acronym = ?';
-
-    return new Promise((resolve, reject) => {
-        dbconnection.query(query, [appid], function(err, rows) {
-            if (err) {
-                reject(err); // Reject with the database query error
-            } else {
-                if(rows.length > 0){
-                    resolve(rows[0].app_rnumber); //return rnum
-                }
-                else{
-                    resolve(false);
-                }
-            }
-        });
-    });
-}
-
-// Query to insert new task
-function insertNewTask(insertdata) {
-    const query = 'INSERT INTO task (task_name, task_description, task_plan, task_app_acronym, task_state, task_creator, task_owner, task_notes, task_id, task_createdate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
-
-    return new Promise((resolve, reject) => {
-        dbconnection.query(query, insertdata, function(err, rows) {
-            if (err) {
-                reject(err); // Reject with the database query error
-            } else {
-                //insert data successfully
-                resolve(true); 
-            }
-        });
-    });
-}
-
-// Query to update app running num
-function updateAppRnum(appid, new_rnum) {
-    const query = 'UPDATE app SET app_rnumber = ? WHERE app_acronym = ?';
-
-    return new Promise((resolve, reject) => {
-        dbconnection.query(query, [new_rnum, appid], function(err, rows) {
-            if (err) {
-                reject(err); // Reject with the database query error
-            } else {
-                //insert data successfully
-                resolve(true); 
-            }
-        });
-    });
-}
-
-//---------------------------------------------
-//---------------------------------------------
-module.exports.createTask = catchAsyncErrors (async (req, res, next) => {
-    
-    if(!req.body){
-        return next(new ErrorHandler('No input', 400));
-    }
-
-    const task = req.body;
-
-    const checkGrp2 = await checkGrp(req.user.username, task.task_app_acronym, 'app_permit_create');
-    
-
-    if(!checkGrp2){
-        return next(new ErrorHandler(`User is not allowed to access this resource.`, 403));
-    }
-
-    const insertdata = [task.task_name, task.task_desc, task.task_plan, task.task_app_acronym, 'open', req.user.username, req.user.username];
-
-    //--------------------------------------------------------------
-    //handle task_notes
-    //--------------------------------------------------------------
-    const msg = "[" + getCurrentDateTimeFormatted() + ", Create], " + req.user.username + " has created task.\n#########################################\n";
-    insertdata.push(msg);
-    //--------------------------------------------------------------
-
-    //--------------------------------------------------------------
-    //handle new task id
-    //--------------------------------------------------------------
-    //retrieve app_rnumber
-    try {
-        const new_rnum = await getAppRNum(task.task_app_acronym);
-        if(new_rnum){
-            const new_rnum2 = new_rnum + 1;
-            const new_taskid = task.task_app_acronym + "_" + new_rnum2;
-            insertdata.push(new_taskid);
-        }
-        else{
-            return next(new ErrorHandler('App does not exist', 400));
-        }
-        
-
-    } catch (err) {
-        return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-    }
-    
-    //--------------------------------------------------------------
-
-    //--------------------------------------------------------------
-    //handle task created date
-    //--------------------------------------------------------------
-    const currentDate = new Date().toISOString().slice(0, 10); // Get current date in 'YYYY-MM-DD' format
-    insertdata.push(currentDate);
-    //--------------------------------------------------------------
-
-    try {
-        const newTaskRes = await insertNewTask(insertdata);
-        
-        if(newTaskRes){
-            const new_rnum = await getAppRNum(task.task_app_acronym);
-
-            if(new_rnum){
-                const new_rnum2 = new_rnum + 1;
-                const updateAppRnumRes = await updateAppRnum(task.task_app_acronym, new_rnum2);
-
-                if(updateAppRnumRes){
-                    res.status(200).json({
-                        success: true,
-                        message: "Task created successful",
-                        data: {
-                            "task_plan": insertdata[2],
-                            "task_id": insertdata[8],
-                            "task_name": insertdata[0],
-                            "task_description": insertdata[1],
-                            "task_owner": insertdata[6],
-                            "task_state": insertdata[4],
-                        }
-                    });
-                }
-                else{
-                    return next(new ErrorHandler('Error in updating app running number', 500));
-                }
-            }
-            else{
-                return next(new ErrorHandler('App does not exist', 400));
-            }
-        }
-
-    } catch (err) {
-        if(err.code == "ER_NO_REFERENCED_ROW_2"){
-            return next(new ErrorHandler('App does not exist', 400));
-        }
-        else{
-            throw err;
-            // return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
-        }
-    }
-});
-
-
-//==================================================================
-//edit task plan
-//==================================================================
-// Query to update app
-function UpdateApp(task, taskplan) {
-    const query = 'UPDATE task SET task_plan = ? where task_id = ?';
-
-    return new Promise((resolve, reject) => {
-        dbconnection.query(query, [taskplan, task], function(err, rows) {
-            if (err) {
-                reject(err); // Reject with the database query error
-            } else {
-                //insert data successfully
-                resolve(true); 
-            }
-        });
-    });
-}
-
-
-// Query to get appid with task_id
 function GetAppID(taskid) {
     const query = 'SELECT task_app_acronym FROM task WHERE task_id = ?';
 
@@ -263,64 +100,213 @@ function GetAppID(taskid) {
         });
     });
 }
+//==================================================================
+//==================================================================
 
-//---------------------------------------------
-//---------------------------------------------
 
-//---------------------------------------------
-//---------------------------------------------
-module.exports.updateTaskPlan = catchAsyncErrors (async (req, res, next) => {
-    if(!req.body){
-        return next(new ErrorHandler('No input', 400));
-    }
+//==================================================================
+//==================================================================
+//==================================================================
+//==================================================================
 
-    const task = req.body;
-    var permit_grp = 'app_permit_open';
 
-    if(task.task_state === 'open'){
-        permit_grp = 'app_permit_open'
-    }
-    else{
-        permit_grp = 'app_permit_done'
-    }
 
-    const appid = await GetAppID(task.task_id);
-    const checkGrp2 = await checkGrp(req.user.username, appid, permit_grp);
 
-    if(!checkGrp2){
-        return next(new ErrorHandler(`User is not allowed to access this resource.`, 403));
-    }
+//==================================================================
+//create new task
+//==================================================================
+module.exports.createTask = catchAsyncErrors (async (req, res, next) => {
+    const client = await dbconnection.promise().getConnection();
 
-    //--------------------------------------------------------------
-    //handle task_id
-    //--------------------------------------------------------------
-    if(!task.task_id){
-        return next(new ErrorHandler('Missing task id', 400));
-    }
-    //--------------------------------------------------------------
+    try{
+        await client.query('START TRANSACTION');
 
-    //--------------------------------------------------------------
-    //handle task_plan
-    //--------------------------------------------------------------
-    if(!task.task_plan){
-        task_plan = "";
-    }
-    else{
-        task_plan = task.task_plan
-    }
-    //--------------------------------------------------------------
-
-    try {
-        const editTaskRes = await UpdateApp(task.task_id, task_plan);
+        if(!req.body){
+            return next(new ErrorHandler('No input', 400));
+        }
+    
+        const task = req.body;
+        const checkGrp2 = await checkGrp(req.user.username, task.task_app_acronym, 'app_permit_create');
         
+        if(!checkGrp2){
+            return next(new ErrorHandler(`User is not allowed to access this resource.`, 403));
+        }
+    
+        const insertdata = [task.task_name, task.task_desc, task.task_plan, task.task_app_acronym, 'open', req.user.username, req.user.username];
+    
+        //--------------------------------------------------------------
+        //handle task_notes
+        //--------------------------------------------------------------
+        const msg = "[" + getCurrentDateTimeFormatted() + ", Create], " + req.user.username + " has created task.\n#########################################\n";
+        insertdata.push(msg);
+        //--------------------------------------------------------------
+    
+        //--------------------------------------------------------------
+        //handle new task id
+        //--------------------------------------------------------------
+        //retrieve app_rnumber
+        // const new_rnum = await getAppRNum(task.task_app_acronym);
+
+        const getAppRNumquery = 'SELECT app_rnumber from app where app_acronym = ?';
+        const new_rnum_raw = await client.query(getAppRNumquery, [task.task_app_acronym]);
+        if(new_rnum_raw.length > 0){
+            var new_rnum = new_rnum_raw[0][0].app_rnumber;
+        }
+        else{
+            var new_rnum = false;
+        }
+
+
+        if(new_rnum){
+            const new_rnum2 = new_rnum + 1;
+            const new_taskid = task.task_app_acronym + "_" + new_rnum2;
+            insertdata.push(new_taskid);
+        }
+        else{
+            return next(new ErrorHandler('App does not exist', 400));
+        }
+        
+        //--------------------------------------------------------------
+    
+        //--------------------------------------------------------------
+        //handle task created date
+        //--------------------------------------------------------------
+        const currentDate = new Date().toISOString().slice(0, 10); // Get current date in 'YYYY-MM-DD' format
+        insertdata.push(currentDate);
+        //--------------------------------------------------------------
+    
+
+        //--------------------------------------------------------------
+        //start inserting new task
+        //--------------------------------------------------------------
+        // const newTaskRes = await insertNewTask(insertdata, client);
+
+        const newTaskquery = 'INSERT INTO task (task_name, task_description, task_plan, task_app_acronym, task_state, task_creator, task_owner, task_notes, task_id, task_createdate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+        const newTaskRes = await client.query(newTaskquery, insertdata);
+        
+        
+        if(newTaskRes){
+            const getAppRNumquery = 'SELECT app_rnumber from app where app_acronym = ?';
+            const new_rnum_raw = await client.query(getAppRNumquery, [task.task_app_acronym]);
+            if(new_rnum_raw.length > 0){
+                var new_rnum = new_rnum_raw[0][0].app_rnumber;
+            }
+            else{
+                var new_rnum = false;
+            }
+
+            if(new_rnum){
+                const new_rnum2 = new_rnum + 1;
+
+                const updateAppRnumquery = 'UPDATE app SET app_rnumber = ? WHERE app_acronym = ?';
+                const updateAppRnumRes = await client.query(updateAppRnumquery, [new_rnum2, task.task_app_acronym]);
+
+
+                if(updateAppRnumRes){
+                    await client.query('COMMIT');
+
+                    res.status(200).json({
+                        success: true,
+                        message: "Task created successful",
+                        data: {
+                            "task_plan": insertdata[2],
+                            "task_id": insertdata[8],
+                            "task_name": insertdata[0],
+                            "task_description": insertdata[1],
+                            "task_owner": insertdata[6],
+                            "task_state": insertdata[4],
+                        }
+                    });
+                }
+            }
+            else{
+                return next(new ErrorHandler('App does not exist', 400));
+            }
+        }
+
+        //--------------------------------------------------------------
+    }
+    catch(err){
+        await client.query('ROLLBACK');
+
+        if(err.code == "ER_NO_REFERENCED_ROW_2"){
+            return next(new ErrorHandler('App does not exist', 400));
+        }
+        else{
+            // throw err;
+            return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+        }
+    }
+    finally {
+        client.release(); // Release the client back to the pool
+    }
+});
+
+
+//==================================================================
+//edit task plan
+//==================================================================
+module.exports.updateTaskPlan = catchAsyncErrors (async (req, res, next) => {
+    const client = await dbconnection.promise().getConnection();
+
+    try{
+        await client.query('START TRANSACTION');
+
+        if(!req.body){
+            return next(new ErrorHandler('No input', 400));
+        }
+
+        const task = req.body;
+        var permit_grp = 'app_permit_open';
+
+        if(task.task_state === 'open'){
+            permit_grp = 'app_permit_open'
+        }
+        else{
+            permit_grp = 'app_permit_done'
+        }
+
+        const appid = await GetAppID(task.task_id);
+        const checkGrp2 = await checkGrp(req.user.username, appid, permit_grp);
+
+        if(!checkGrp2){
+            return next(new ErrorHandler(`User is not allowed to access this resource.`, 403));
+        }
+
+        //--------------------------------------------------------------
+        //handle task_id
+        //--------------------------------------------------------------
+        if(!task.task_id){
+            return next(new ErrorHandler('Missing task id', 400));
+        }
+        //--------------------------------------------------------------
+
+        //--------------------------------------------------------------
+        //handle task_plan
+        //--------------------------------------------------------------
+        if(!task.task_plan){
+            task_plan = "";
+        }
+        else{
+            task_plan = task.task_plan
+        }
+        //--------------------------------------------------------------
+
+        const editTaskquery = 'UPDATE task SET task_plan = ? where task_id = ?';
+        const editTaskRes = await client.query(editTaskquery, [task_plan, task.task_id]);
+
         if(editTaskRes){
+            await client.query('COMMIT');
+
             res.status(200).json({
                 success: true,
                 message: "Task updated successful"
             });
         }
+    }
+    catch(err){
+        await client.query('ROLLBACK');
 
-    } catch (err) {
         if(err.code == "ER_NO_REFERENCED_ROW_2"){
             return next(new ErrorHandler('Plan selected does not exist', 400));
         }
@@ -328,6 +314,9 @@ module.exports.updateTaskPlan = catchAsyncErrors (async (req, res, next) => {
             // throw err;
             return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
         }
+    }
+    finally {
+        client.release(); // Release the client back to the pool
     }
 });
 
@@ -462,11 +451,6 @@ function UpdateNote(taskid, notes, username) {
 
 //---------------------------------------------
 //---------------------------------------------
-
-
-//---------------------------------------------
-//---------------------------------------------
-
 module.exports.addTaskNotes = catchAsyncErrors (async (req, res, next) => {
     try {
         if(!req.params.taskid){
@@ -768,7 +752,7 @@ module.exports.updateTaskStateDown = catchAsyncErrors (async (req, res, next) =>
         }
 
     } catch (err) {
-        throw err;
+        // throw err;
         return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
     }
 });
