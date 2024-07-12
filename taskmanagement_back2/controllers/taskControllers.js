@@ -148,14 +148,13 @@ module.exports.createTask = catchAsyncErrors (async (req, res, next) => {
         // const new_rnum = await getAppRNum(task.task_app_acronym);
 
         const getAppRNumquery = 'SELECT app_rnumber from app where app_acronym = ?';
-        const new_rnum_raw = await client.query(getAppRNumquery, [task.task_app_acronym]);
-        if(new_rnum_raw.length > 0){
-            var new_rnum = new_rnum_raw[0][0].app_rnumber;
+        const [rows] = await client.query(getAppRNumquery, [task.task_app_acronym]);
+        if(rows.length > 0){
+            var new_rnum = rows[0].app_rnumber;
         }
         else{
             var new_rnum = false;
         }
-
 
         if(new_rnum){
             const new_rnum2 = new_rnum + 1;
@@ -187,9 +186,9 @@ module.exports.createTask = catchAsyncErrors (async (req, res, next) => {
         
         if(newTaskRes){
             const getAppRNumquery = 'SELECT app_rnumber from app where app_acronym = ?';
-            const new_rnum_raw = await client.query(getAppRNumquery, [task.task_app_acronym]);
-            if(new_rnum_raw.length > 0){
-                var new_rnum = new_rnum_raw[0][0].app_rnumber;
+            const [rows2] = await client.query(getAppRNumquery, [task.task_app_acronym]);
+            if(rows2.length > 0){
+                var new_rnum = rows2[0].app_rnumber;
             }
             else{
                 var new_rnum = false;
