@@ -185,6 +185,10 @@ module.exports.createTask = catchAsyncErrors (async (req, res, next) => {
 
         //================================================================
         if(task.Task_description){
+            if(typeof task.Task_description !== "string"){
+                return next(new ErrorHandler('Invalid Input', 400));
+            }
+
             var Task_description = task.Task_description;
         }
         else{
@@ -193,6 +197,10 @@ module.exports.createTask = catchAsyncErrors (async (req, res, next) => {
 
         //================================================================
         if(task.Task_plan){
+            if(typeof task.Task_plan !== "string"){
+                return next(new ErrorHandler('Invalid Input', 400));
+            }
+
             var Task_plan = task.Task_plan;
 
             // Task_plan must exist in plan table in database
@@ -577,23 +585,23 @@ module.exports.updateTaskStatetoDone = catchAsyncErrors (async (req, res, next) 
             var password = task_info.password;
         }
 
-        //================================================================
-        if(!task_info.Task_app_Acronym || task_info.Task_app_Acronym ===""){
-            return next(new ErrorHandler('Mising App Acronym', 400));
-        }
-        else if(typeof task_info.Task_app_Acronym !== "string"){
-            return next(new ErrorHandler('Invalid Input', 400));
-        }
-        else{
-            var Task_app_Acronym = task_info.Task_app_Acronym;
+        // //================================================================
+        // if(!task_info.Task_app_Acronym || task_info.Task_app_Acronym ===""){
+        //     return next(new ErrorHandler('Mising App Acronym', 400));
+        // }
+        // else if(typeof task_info.Task_app_Acronym !== "string"){
+        //     return next(new ErrorHandler('Invalid Input', 400));
+        // }
+        // else{
+        //     var Task_app_Acronym = task_info.Task_app_Acronym;
 
-            //Task_app_Acronym must exist in app table
-            const check_appacronym_query = 'SELECT app_acronym from app where app_acronym = ?';
-            const [rows] = await client.query(check_appacronym_query, [Task_app_Acronym]);
-            if(rows.length < 1){
-                return next(new ErrorHandler('Invalid Input', 400));
-            }
-        }
+        //     //Task_app_Acronym must exist in app table
+        //     const check_appacronym_query = 'SELECT app_acronym from app where app_acronym = ?';
+        //     const [rows] = await client.query(check_appacronym_query, [Task_app_Acronym]);
+        //     if(rows.length < 1){
+        //         return next(new ErrorHandler('Invalid Input', 400));
+        //     }
+        // }
 
         //================================================================
         if(!task_info.Task_id || task_info.Task_id ===""){
@@ -604,13 +612,20 @@ module.exports.updateTaskStatetoDone = catchAsyncErrors (async (req, res, next) 
         }
         else{
             var Task_id = task_info.Task_id;
+            var Task_app_Acronym = "";
 
             //Task_app_Acronym must exist in app table
-            const check_taskid_query = "SELECT task_id from task where task_id = ? and task_state = 'doing' and task_app_acronym = ?";
+            const check_taskid_query = "SELECT task_app_acronym from task where task_id = ? and task_state = 'doing'";
             const [rows2] = await client.query(check_taskid_query, [Task_id, Task_app_Acronym]);
             if(rows2.length < 1){
                 return next(new ErrorHandler('Invalid Input', 400));
             }
+            else{
+                Task_app_Acronym = rows2[0].task_app_acronym;
+            }
+
+
+            
         }
 
         //--------------------------------------------------------------

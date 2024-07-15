@@ -8,7 +8,7 @@ const {
 } = require('../controllers/taskControllers');
 
 router.route('/CreateTask').post(createTask);
-router.route('/GetTaskByState').get(getAllStateTask);
+router.route('/GetTaskByState').post(getAllStateTask);
 router.route('/PromoteTask2Done').patch(updateTaskStatetoDone);
 
 
