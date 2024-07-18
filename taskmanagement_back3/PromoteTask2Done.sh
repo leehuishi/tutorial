@@ -193,16 +193,27 @@ OUTPUT_STATUS=$(curl --location $DOMAIN \
 }" -s -w "%{response_code}" -X PATCH --output /dev/null)
 test_end
 
- test_start 'Valid input'
- EXPECTED_STATUS=$STATUS_OK
- OUTPUT_STATUS=$(curl --location $DOMAIN \
- --header 'Content-Type: application/json' \
- --data "{
-     \"username\" : \"$USERNAME\",
-     \"password\" : \"$PASSWORD\",
-     \"Task_id\" : \"$TASK_ID\"
- }" -s -w "%{response_code}" -X PATCH --output /dev/null)
- test_end
+test_start 'Valid input'
+EXPECTED_STATUS=$STATUS_OK
+OUTPUT_STATUS=$(curl --location $DOMAIN \
+--header 'Content-Type: application/json' \
+--data "{
+    \"username\" : \"$USERNAME\",
+    \"password\" : \"$PASSWORD\",
+    \"Task_id\" : \"$TASK_ID\"
+}" -s -w "%{response_code}" -X PATCH --output /dev/null)
+test_end
+
+test_start 'State is not a valid state'
+EXPECTED_STATUS=$STATUS_INVALID_FIELDS
+OUTPUT_STATUS=$(curl --location $DOMAIN \
+--header 'Content-Type: application/json' \
+--data "{
+    \"username\" : \"$USERNAME\",
+    \"password\" : \"$PASSWORD\",
+    \"Task_id\" : \"$TASK_ID\"
+}" -s -w "%{response_code}" -X PATCH --output /dev/null)
+test_end
 
 # *************************** Conclusion ***************************
 

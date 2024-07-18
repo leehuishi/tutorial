@@ -128,16 +128,16 @@ module.exports.createTask = catchAsyncErrors (async (req, res, next) => {
         //all field must be string
 
         if(!req.body){
-            return next(new ErrorHandler('No input', 400));
+            return next(new ErrorHandler('P400', 400));
         }
 
         const task = req.body;
 
         if(!task.username || task.username ===""){
-            return next(new ErrorHandler('Missing Username', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else if(typeof task.username !== "string"){
-            return next(new ErrorHandler('Invalid Input', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else{
             var username = task.username;
@@ -145,10 +145,10 @@ module.exports.createTask = catchAsyncErrors (async (req, res, next) => {
         
         //================================================================
         if(!task.password || task.password ===""){
-            return next(new ErrorHandler('Missing Password', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else if(typeof task.password !== "string"){
-            return next(new ErrorHandler('Invalid Input', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else{
             var password = task.password;
@@ -156,10 +156,10 @@ module.exports.createTask = catchAsyncErrors (async (req, res, next) => {
 
         //================================================================
         if(!task.Task_app_Acronym || task.Task_app_Acronym ===""){
-            return next(new ErrorHandler('Mising App Acronym', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else if(typeof task.Task_app_Acronym !== "string"){
-            return next(new ErrorHandler('Invalid Input', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else{
             var Task_app_Acronym = task.Task_app_Acronym;
@@ -168,16 +168,16 @@ module.exports.createTask = catchAsyncErrors (async (req, res, next) => {
             const check_appacronym_query = 'SELECT app_acronym from app where app_acronym = ?';
             const [rows] = await client.query(check_appacronym_query, [Task_app_Acronym]);
             if(rows.length < 1){
-                return next(new ErrorHandler('Invalid Input', 400));
+                return next(new ErrorHandler('P400', 400));
             }
         }
 
         //================================================================
         if(!task.Task_Name || task.Task_Name ===""){
-            return next(new ErrorHandler('Mising Task Name', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else if(typeof task.Task_Name !== "string"){
-            return next(new ErrorHandler('Invalid Input', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else{
             var Task_Name = task.Task_Name;
@@ -186,7 +186,7 @@ module.exports.createTask = catchAsyncErrors (async (req, res, next) => {
         //================================================================
         if(task.Task_description){
             if(typeof task.Task_description !== "string"){
-                return next(new ErrorHandler('Invalid Input', 400));
+                return next(new ErrorHandler('P400', 400));
             }
 
             var Task_description = task.Task_description;
@@ -198,16 +198,16 @@ module.exports.createTask = catchAsyncErrors (async (req, res, next) => {
         //================================================================
         if(task.Task_plan){
             if(typeof task.Task_plan !== "string"){
-                return next(new ErrorHandler('Invalid Input', 400));
+                return next(new ErrorHandler('P400', 400));
             }
 
             var Task_plan = task.Task_plan;
 
             // Task_plan must exist in plan table in database
-            const check_taskplan_query = 'SELECT plan_mvp_name from plan where plan_mvp_name = ?';
-            const [rows2] = await client.query(check_taskplan_query, [Task_plan]);
+            const check_taskplan_query = 'SELECT plan_mvp_name from plan where plan_mvp_name = ? and plan_app_acronym = ?';
+            const [rows2] = await client.query(check_taskplan_query, [Task_plan, Task_app_Acronym]);
             if(rows2.length < 1){
-                return next(new ErrorHandler('Invalid Input', 400));
+                return next(new ErrorHandler('P400', 400));
             }
         }
         else{
@@ -225,7 +225,7 @@ module.exports.createTask = catchAsyncErrors (async (req, res, next) => {
         const check_crediential_query = 'SELECT password, status FROM tms_users WHERE username = ?';
         const [user_details] = await client.query(check_crediential_query, [username]);
         if(user_details.length < 1){
-            return next(new ErrorHandler('Invalid Username or Password', 401));
+            return next(new ErrorHandler('A401', 401));
         }
 
         //make sure that password are valid
@@ -233,13 +233,13 @@ module.exports.createTask = catchAsyncErrors (async (req, res, next) => {
         const isPasswordMatched = await bcrypt.compare(password, raw_password);
 
         if (!isPasswordMatched) {
-            return next(new ErrorHandler('Invalid Username or Password', 401));
+            return next(new ErrorHandler('A401', 401));
         }
 
         //make sure that user is not disable
         const raw_status = user_details[0].status;
         if (raw_status === 0) {
-            return next(new ErrorHandler('Invalid Username or Password', 401));
+            return next(new ErrorHandler('A401', 401));
         }
         //--------------------------------------------------------------
         //--------------------------------------------------------------
@@ -251,7 +251,7 @@ module.exports.createTask = catchAsyncErrors (async (req, res, next) => {
         const checkGrp2 = await checkGrp(username, Task_app_Acronym, 'app_permit_create');
 
         if(!checkGrp2){
-            return next(new ErrorHandler(`User is not allowed to access this resource.`, 403));
+            return next(new ErrorHandler(`AR403`, 403));
         }
         //--------------------------------------------------------------
         //--------------------------------------------------------------
@@ -335,7 +335,7 @@ module.exports.createTask = catchAsyncErrors (async (req, res, next) => {
     catch(err){
         await client.query('ROLLBACK');
 
-        return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+        return next(new ErrorHandler('DO500', 500));
     }
     finally {
         client.release(); // Release the client back to the pool
@@ -359,16 +359,16 @@ module.exports.getAllStateTask = catchAsyncErrors (async (req, res, next) => {
         //all field must be string
 
         if(!req.body){
-            return next(new ErrorHandler('No input', 400));
+            return next(new ErrorHandler('P400', 400));
         }
 
         const statebody = req.body;
 
         if(!statebody.username || statebody.username ===""){
-            return next(new ErrorHandler('Missing Username', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else if(typeof statebody.username !== "string"){
-            return next(new ErrorHandler('Invalid Input', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else{
             var username = statebody.username;
@@ -376,10 +376,10 @@ module.exports.getAllStateTask = catchAsyncErrors (async (req, res, next) => {
         
         //================================================================
         if(!statebody.password || statebody.password ===""){
-            return next(new ErrorHandler('Missing Password', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else if(typeof statebody.password !== "string"){
-            return next(new ErrorHandler('Invalid Input', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else{
             var password = statebody.password;
@@ -387,10 +387,10 @@ module.exports.getAllStateTask = catchAsyncErrors (async (req, res, next) => {
 
         //================================================================
         if(!statebody.Task_state || statebody.Task_state ===""){
-            return next(new ErrorHandler('Missing Task_state', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else if(typeof statebody.Task_state !== "string"){
-            return next(new ErrorHandler('Invalid Input', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else{
             var Task_state = statebody.Task_state;
@@ -398,7 +398,7 @@ module.exports.getAllStateTask = catchAsyncErrors (async (req, res, next) => {
 
         const task_statelist = ["open", "todo", "doing", "done", "closed"];
         if(!task_statelist.includes(Task_state)){
-            return next(new ErrorHandler('Invalid Input', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         //--------------------------------------------------------------
         //--------------------------------------------------------------
@@ -410,7 +410,7 @@ module.exports.getAllStateTask = catchAsyncErrors (async (req, res, next) => {
         const check_crediential_query = 'SELECT password, status FROM tms_users WHERE username = ?';
         const [user_details] = await client.query(check_crediential_query, [username]);
         if(user_details.length < 1){
-            return next(new ErrorHandler('Invalid Username or Password', 401));
+            return next(new ErrorHandler('A401', 401));
         }
 
         //make sure that password are valid
@@ -418,13 +418,13 @@ module.exports.getAllStateTask = catchAsyncErrors (async (req, res, next) => {
         const isPasswordMatched = await bcrypt.compare(password, raw_password);
 
         if (!isPasswordMatched) {
-            return next(new ErrorHandler('Invalid Username or Password', 401));
+            return next(new ErrorHandler('A401', 401));
         }
 
         //make sure that user is not disable
         const raw_status = user_details[0].status;
         if (raw_status === 0) {
-            return next(new ErrorHandler('Invalid Username or Password', 401));
+            return next(new ErrorHandler('A401', 401));
         }
         //--------------------------------------------------------------
         //--------------------------------------------------------------
@@ -466,7 +466,7 @@ module.exports.getAllStateTask = catchAsyncErrors (async (req, res, next) => {
         // throw err;
         await client.query('ROLLBACK');
 
-        return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+        return next(new ErrorHandler('DO500', 500));
     }
     finally {
         client.release(); // Release the client back to the pool
@@ -559,16 +559,16 @@ module.exports.updateTaskStatetoDone = catchAsyncErrors (async (req, res, next) 
         //all field must be string
 
         if(!req.body){
-            return next(new ErrorHandler('No input', 400));
+            return next(new ErrorHandler('P400', 400));
         }
 
         const task_info = req.body;
 
         if(!task_info.username || task_info.username ===""){
-            return next(new ErrorHandler('Missing Username', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else if(typeof task_info.username !== "string"){
-            return next(new ErrorHandler('Invalid Input', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else{
             var username = task_info.username;
@@ -576,10 +576,10 @@ module.exports.updateTaskStatetoDone = catchAsyncErrors (async (req, res, next) 
         
         //================================================================
         if(!task_info.password || task_info.password ===""){
-            return next(new ErrorHandler('Missing Password', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else if(typeof task_info.password !== "string"){
-            return next(new ErrorHandler('Invalid Input', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else{
             var password = task_info.password;
@@ -587,10 +587,10 @@ module.exports.updateTaskStatetoDone = catchAsyncErrors (async (req, res, next) 
 
         // //================================================================
         // if(!task_info.Task_app_Acronym || task_info.Task_app_Acronym ===""){
-        //     return next(new ErrorHandler('Mising App Acronym', 400));
+        //     return next(new ErrorHandler('P400', 400));
         // }
         // else if(typeof task_info.Task_app_Acronym !== "string"){
-        //     return next(new ErrorHandler('Invalid Input', 400));
+        //     return next(new ErrorHandler('P400', 400));
         // }
         // else{
         //     var Task_app_Acronym = task_info.Task_app_Acronym;
@@ -599,16 +599,16 @@ module.exports.updateTaskStatetoDone = catchAsyncErrors (async (req, res, next) 
         //     const check_appacronym_query = 'SELECT app_acronym from app where app_acronym = ?';
         //     const [rows] = await client.query(check_appacronym_query, [Task_app_Acronym]);
         //     if(rows.length < 1){
-        //         return next(new ErrorHandler('Invalid Input', 400));
+        //         return next(new ErrorHandler('P400', 400));
         //     }
         // }
 
         //================================================================
         if(!task_info.Task_id || task_info.Task_id ===""){
-            return next(new ErrorHandler('Mising Task_id', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else if(typeof task_info.Task_id !== "string"){
-            return next(new ErrorHandler('Invalid Input', 400));
+            return next(new ErrorHandler('P400', 400));
         }
         else{
             var Task_id = task_info.Task_id;
@@ -618,7 +618,7 @@ module.exports.updateTaskStatetoDone = catchAsyncErrors (async (req, res, next) 
             const check_taskid_query = "SELECT task_app_acronym from task where task_id = ? and task_state = 'doing'";
             const [rows2] = await client.query(check_taskid_query, [Task_id, Task_app_Acronym]);
             if(rows2.length < 1){
-                return next(new ErrorHandler('Invalid Input', 400));
+                return next(new ErrorHandler('P400', 400));
             }
             else{
                 Task_app_Acronym = rows2[0].task_app_acronym;
@@ -639,7 +639,7 @@ module.exports.updateTaskStatetoDone = catchAsyncErrors (async (req, res, next) 
         const check_crediential_query = 'SELECT password, status FROM tms_users WHERE username = ?';
         const [user_details] = await client.query(check_crediential_query, [username]);
         if(user_details.length < 1){
-            return next(new ErrorHandler('Invalid Username or Password', 401));
+            return next(new ErrorHandler('A401', 401));
         }
 
         //make sure that password are valid
@@ -647,13 +647,13 @@ module.exports.updateTaskStatetoDone = catchAsyncErrors (async (req, res, next) 
         const isPasswordMatched = await bcrypt.compare(password, raw_password);
 
         if (!isPasswordMatched) {
-            return next(new ErrorHandler('Invalid Username or Password', 401));
+            return next(new ErrorHandler('A401', 401));
         }
 
         //make sure that user is not disable
         const raw_status = user_details[0].status;
         if (raw_status === 0) {
-            return next(new ErrorHandler('Invalid Username or Password', 401));
+            return next(new ErrorHandler('A401', 401));
         }
         //--------------------------------------------------------------
         //--------------------------------------------------------------
@@ -664,7 +664,7 @@ module.exports.updateTaskStatetoDone = catchAsyncErrors (async (req, res, next) 
         const checkGrp2 = await checkGrp(username, Task_app_Acronym, 'app_permit_doing');
 
         if(!checkGrp2){
-            return next(new ErrorHandler(`User is not allowed to access this resource.`, 403));
+            return next(new ErrorHandler('AR403', 403));
         }
         //--------------------------------------------------------------
         //--------------------------------------------------------------
@@ -696,7 +696,7 @@ module.exports.updateTaskStatetoDone = catchAsyncErrors (async (req, res, next) 
     } catch (err) {
         await client.query('ROLLBACK');
 
-        return next(new ErrorHandler('The database server is unavailable, or there is a syntax error in the database query.', 500));
+        return next(new ErrorHandler('DO500', 500));
     }
     finally {
         client.release(); // Release the client back to the pool

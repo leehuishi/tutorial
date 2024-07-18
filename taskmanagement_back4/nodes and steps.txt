@@ -1,0 +1,41 @@
+
+
+
+docker build -t assignment4_2:alpine .
+
+docker run -p 8080:8080 assignment4_2:alpine
+
+docker exec <container name> whoami
+
+
+
+docker pull node:14-alpine
+docker save -o node14-alpine.tar node:14-alpine
+
+npm install 
+npm pack
+
+& "C:\Program Files\7-Zip\7z.exe" a -pabc123 secure_files.zip node14-alpine.tar taskmanagement_back4-1.0.0.tgz
+
+
+sha256sum node14-alpine.tar > node14-alpine.tar.sha256
+sha256sum taskmanagement_back4-1.0.0.tgz > taskmanagement_back4-1.0.0.tgz.sha256
+or
+Get-FileHash -Algorithm SHA256 .\node14-alpine.tar | Out-File -FilePath .\node14-alpine.tar.sha256
+Get-FileHash -Algorithm SHA256 .\taskmanagement_back4-1.0.0.tgz | Out-File -FilePath .\taskmanagement_back4-1.0.0.tgz.sha256
+
+
+diff 2581025CE823CC1B043DB5B9AE57D82F9D4F23A1C02ABA916BA8BEB769F4434F 2581025CE823CC1B043DB5B9AE57D82F9D4F23A1C02ABA916BA8BEB769F4434F
+
+
+docker load -i node14-alpine.tar
+
+
+docker build -t assignment4_3:alpine .
+
+docker run -p 8080:8080 assignment4_3:alpine
+
+docker build -t assignment4_3 .
+
+
+docker run -p 8080:8080 assignment4_3

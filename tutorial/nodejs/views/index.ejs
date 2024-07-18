@@ -1,0 +1,30 @@
+<html>
+    <head>
+        <script src="http://code.jquery.com/jquery-1.11.3.min.js" >
+        </script>
+    </head>
+    <body>
+        <h1>Hello World!</h1>
+        
+        <form method="POST" action="/newpersonttxt">
+            First name: <input type="text" id="firstname" name="firstname" />
+            
+            </br>
+            Last name: <input type="text" id="lastname" name="lastname" />
+            
+            </br>
+            <input type="submit" value="Submit"/>
+        </form>
+
+        <!-- send json in body without form -->
+        <!-- <script>
+            $.ajax({
+                type: "POST",
+                url:"/newpersonjson",
+                data: JSON.stringify({ firstname: 'Jane', lastname: 'Kim'}),
+                dataType: 'json',
+                contentType: 'application/json'
+            });
+        </script> -->
+    </body>
+</html>

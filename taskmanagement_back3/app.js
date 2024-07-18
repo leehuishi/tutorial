@@ -32,7 +32,7 @@ app.use(task);
 
 //manage unhandle route - part 2 (put it after all the routes !!!!! e.g. of routes = app.use(jobs);)
 app.all('*', (req, res, next) => {
-    next(new ErrorHandler(`${req.originalUrl} route not found`, 404));
+    next(new ErrorHandler(`U404`, 404));
 });
 
 //Middleware to handle errors

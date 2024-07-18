@@ -1,0 +1,14 @@
+1. Set up and create package.json: npm init -y
+2. Set up react and react-dom: npm install react react-dom --save
+3. Set up webpack for running of the website: npm install webpack webpack-cli webpack-dev-server --save
+4. Install babel: npm install @babel/core @babel/preset-env @babel/preset-react babel-loader --save
+5. To start webpack running: 
+    5.1. have to set up the script in package.json
+    5.2. to start running: npm run dev
+6. Setup react router: npm install react-router-dom --save
+7.Set up snippets (so that no need to key in same codes all the time):
+    7.1: Ctrl + Shift + P 
+    7.2: Search for snippets
+    7.3: Click on "Configure User Snippets" 
+    7.4: Search for react -> select "Javascript React"
+    7.5: Put the snippets in the file
